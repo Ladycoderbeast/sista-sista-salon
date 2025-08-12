@@ -41,29 +41,38 @@
 
   <!-- Minimal modal + helper styles -->
   <style>
-    .setup-modal-backdrop {
+    .setup-modal-backdrop,
+    .confirm-modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45);
       display: none; align-items: center; justify-content: center; z-index: 9999;
     }
-    .setup-modal {
+    .setup-modal, .confirm-modal {
       width: min(520px, 92vw); background: #fff; border-radius: 14px; padding: 20px 22px;
       box-shadow: 0 10px 30px rgba(0,0,0,.2); color:#222; font-family: system-ui, -apple-system, Arial, sans-serif;
     }
-    .setup-modal h3 { margin: 0 0 10px; font-size: 20px; }
-    .setup-modal p  { margin: 0 0 14px; color:#555; }
+    .setup-modal h3, .confirm-modal h3 { margin: 0 0 10px; font-size: 20px; }
+    .setup-modal p,  .confirm-modal p  { margin: 0 0 14px; color:#555; }
     .setup-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .setup-modal label { display:block; font-size: 13px; margin-bottom: 6px; color:#333; }
-    .setup-modal input, .setup-modal select {
+    .setup-modal label, .confirm-modal label { display:block; font-size: 13px; margin-bottom: 6px; color:#333; }
+    .setup-modal input, .confirm-modal input, .setup-modal select {
       width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;
     }
-    .setup-actions { display:flex; gap:10px; justify-content:flex-end; margin-top: 16px; }
+    .setup-actions, .confirm-actions { display:flex; gap:10px; justify-content:flex-end; margin-top: 16px; }
     .btn-plain { background:#eee; border:0; border-radius: 10px; padding:10px 14px; cursor:pointer; }
     .btn-main  { background:#000; color:#fff; border:0; border-radius: 10px; padding:10px 14px; cursor:pointer; }
+    .btn-danger{ background:#aa2626; color:#fff; border:0; border-radius: 10px; padding:10px 14px; cursor:pointer; }
     .setup-note { font-size: 12px; color:#777; margin-top: 6px; }
     .reset-link { text-align:center; margin-top:12px; }
     .reset-link a { color:#888; text-decoration: none; font-size: 12px; }
     .reset-link a:hover { text-decoration: underline; color:#000; }
     @media (max-width: 560px) { .setup-grid { grid-template-columns: 1fr; } }
+
+    /* Toast */
+    #toast {
+      position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(8px);
+      background:#111;color:#fff;padding:12px 16px;border-radius:12px;font-weight:600;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);opacity:0;pointer-events:none;transition:.25s;z-index:10000;
+    }
   </style>
 </head>
 
@@ -87,7 +96,7 @@
             <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
           </div>
 
-          <select id="role" required>
+        <select id="role" required>
             <option value="">Select Role</option>
             <option value="admin">Admin</option>
             <option value="staff">Staff</option>
@@ -102,7 +111,7 @@
 
         <!-- Reset PINs link -->
         <div class="reset-link">
-          <a href="#" onclick="resetPins();return false;" title="Clear saved users and re-run setup">Reset PINs</a>
+          <a href="#" id="resetPinsLink" title="Clear saved users and re-run setup">Reset PINs</a>
         </div>
       </div>
     </div>
@@ -112,7 +121,7 @@
   <div id="setupBackdrop" class="setup-modal-backdrop" aria-hidden="true">
     <div class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
       <h3 id="setupTitle">First-time Setup</h3>
-      <p>Create an Admin account (required) and optionally a Staff account. PINs are stored securely (salted hash) on this device.</p>
+      <p>Create an Admin account (required) and optionally a Staff account. PINs are stored securely on this device.</p>
 
       <div class="setup-grid">
         <div>
@@ -148,25 +157,37 @@
     </div>
   </div>
 
+  <!-- Reset PINs Confirm Modal -->
+  <div id="confirmBackdrop" class="confirm-modal-backdrop" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <h3 id="confirmTitle">Reset PINs</h3>
+      <p>Type <b>RESET</b> to clear all saved users and sessions on this device.</p>
+      <input id="resetConfirmInput" type="text" placeholder="Type RESET to confirm">
+      <div class="confirm-actions">
+        <button class="btn-plain"  type="button" id="cancelResetBtn">Cancel</button>
+        <button class="btn-danger" type="button" id="confirmResetBtn">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
   <script>
     /* ========= First-run PIN auth (PBKDF2 salted hashes) ========= */
-    const USERS_KEY = 'sista_users'; // [{username, role, salt:number[], hash:string, createdAt}]
+    const USERS_KEY   = 'sista_users';   // [{username, role, salt:number[], hash:string, createdAt}]
     const SESSION_KEY = 'sista_session';
 
     function getUsers() {
       try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
       catch { return []; }
     }
-    function saveUsers(list) {
-      localStorage.setItem(USERS_KEY, JSON.stringify(list));
-    }
+    function saveUsers(list) { localStorage.setItem(USERS_KEY, JSON.stringify(list)); }
     function findUser(username, role) {
       const u = (getUsers() || []).find(x => x.username === username && x.role === role);
       return u || null;
     }
-    function hasAdmin() {
-      return (getUsers() || []).some(u => u.role === 'admin');
-    }
+    function hasAdmin() { return (getUsers() || []).some(u => u.role === 'admin'); }
 
     async function deriveHash(pin, saltBytes, iterations = 150000) {
       const enc = new TextEncoder();
@@ -208,20 +229,48 @@
       if (!hasAdmin()) showSetupModal(true);
     }
 
-    // Reset PINs flow (clears users + sessions, shows setup)
-    function resetPins() {
-      const txt = prompt('Type RESET to clear all saved users and sessions on this device.');
-      if (!txt || txt.trim().toUpperCase() !== 'RESET') return;
-      localStorage.removeItem(USERS_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
-      localStorage.removeItem('loggedUser');
-      showSetupModal(true);
-      alert('Users cleared. Please create new Admin/Staff.');
+    /* ========= Toast ========= */
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = `Sista Sista: ${msg}`;
+      t.style.opacity = 1;
+      t.style.transform = 'translateX(-50%) translateY(0)';
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        t.style.opacity = 0;
+        t.style.transform = 'translateX(-50%) translateY(8px)';
+      }, 2400);
     }
 
-    // Wire setup modal buttons
+    /* ========= Reset PINs (modal) ========= */
+    document.getElementById('resetPinsLink')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('confirmBackdrop').style.display = 'flex';
+      document.getElementById('confirmBackdrop').setAttribute('aria-hidden', 'false');
+      const input = document.getElementById('resetConfirmInput');
+      input.value = '';
+      setTimeout(() => input.focus(), 0);
+    });
+
+    document.getElementById('cancelResetBtn')?.addEventListener('click', () => {
+      document.getElementById('confirmBackdrop').style.display = 'none';
+      document.getElementById('confirmBackdrop').setAttribute('aria-hidden', 'true');
+    });
+
+    document.getElementById('confirmResetBtn')?.addEventListener('click', () => {
+      const v = document.getElementById('resetConfirmInput').value.trim().toUpperCase();
+      if (v !== 'RESET') { showToast('Please type RESET to confirm'); return; }
+      localStorage.removeItem(USERS_KEY);
+      localStorage.removeItem('loggedUser');
+      sessionStorage.removeItem(SESSION_KEY);
+      document.getElementById('confirmBackdrop').style.display = 'none';
+      showToast('PINs cleared on this device');
+      setTimeout(() => { showSetupModal(true); }, 600);
+    });
+
+    /* ========= Setup modal buttons ========= */
     document.getElementById('setupCancel').addEventListener('click', () => {
-      if (!hasAdmin()) { alert('Please complete Admin setup to continue.'); return; }
+      if (!hasAdmin()) { showToast('Please complete Admin setup to continue'); return; }
       showSetupModal(false);
     });
 
@@ -232,20 +281,20 @@
       const staffUser = document.getElementById('su_staff_user').value.trim();
       const staffPin  = document.getElementById('su_staff_pin').value.trim();
 
-      if (adminPin.length < 4) { alert('Admin PIN must be at least 4 digits.'); return; }
-      if (adminPin !== adminPin2) { alert('Admin PINs do not match.'); return; }
+      if (adminPin.length < 4) { showToast('Admin PIN must be at least 4 digits'); return; }
+      if (adminPin !== adminPin2) { showToast('Admin PINs do not match'); return; }
 
       try {
         await createUser(adminUser, 'admin', adminPin);
         if (staffUser && staffPin) {
-          if (staffPin.length < 4) { alert('Staff PIN must be at least 4 digits.'); return; }
+          if (staffPin.length < 4) { showToast('Staff PIN must be at least 4 digits'); return; }
           await createUser(staffUser, 'staff', staffPin);
         }
         showSetupModal(false);
-        alert('Setup complete! You can now log in.');
+        showToast('Setup complete! You can now log in');
       } catch (e) {
         console.error(e);
-        alert(e.message || 'Could not save users.');
+        showToast(e.message || 'Could not save users');
       }
     });
 
