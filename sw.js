@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v5';
+const CACHE_NAME = 'sista-sista-cache-v6';
 
 const CORE_ASSETS = [
   './',
@@ -70,7 +70,7 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then(c => c.put(request, copy));
         return res;
       } catch {
-        return (await caches.match('./offline.html')) || (await caches.match('./index.html'));
+        return (await caches.match('./index.html')) || (await caches.match('./offline.html'));
       }
     })());
     return;
