@@ -65,6 +65,7 @@
     .reset-link { text-align:center; margin-top:12px; }
     .reset-link a { color:#888; text-decoration: none; font-size: 12px; }
     .reset-link a:hover { text-decoration: underline; color:#000; }
+
     @media (max-width: 560px) { .setup-grid { grid-template-columns: 1fr; } }
 
     /* Toast */
@@ -96,7 +97,7 @@
             <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
           </div>
 
-        <select id="role" required>
+          <select id="role" required>
             <option value="">Select Role</option>
             <option value="admin">Admin</option>
             <option value="staff">Staff</option>
@@ -121,23 +122,41 @@
   <div id="setupBackdrop" class="setup-modal-backdrop" aria-hidden="true">
     <div class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
       <h3 id="setupTitle">First-time Setup</h3>
-      <p>Create an Admin account (required) and optionally a Staff account. PINs are stored securely on this device.</p>
+      <p>Create an Admin account (required), plus an optional second Admin and an optional Staff account. PINs are stored securely on this device.</p>
 
+      <!-- Admin 1 (required) -->
       <div class="setup-grid">
         <div>
-          <label>Admin Username</label>
+          <label>Admin 1 Username</label>
           <input id="su_admin_user" type="text" placeholder="e.g. Owner" value="Owner">
         </div>
         <div>
-          <label>Admin PIN (min 4 digits)</label>
+          <label>Admin 1 PIN (min 4 digits)</label>
           <input id="su_admin_pin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
         </div>
         <div>
-          <label>Confirm Admin PIN</label>
+          <label>Confirm Admin 1 PIN</label>
           <input id="su_admin_pin2" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
         </div>
       </div>
 
+      <!-- Admin 2 (optional) -->
+      <div class="setup-grid" style="margin-top:12px;">
+        <div>
+          <label>Admin 2 Username (optional)</label>
+          <input id="su_admin2_user" type="text" placeholder="e.g. Co-Owner">
+        </div>
+        <div>
+          <label>Admin 2 PIN (min 4 digits)</label>
+          <input id="su_admin2_pin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+        <div>
+          <label>Confirm Admin 2 PIN</label>
+          <input id="su_admin2_pin2" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+      </div>
+
+      <!-- Staff (optional) -->
       <div class="setup-grid" style="margin-top:12px;">
         <div>
           <label>Staff Username (optional)</label>
@@ -275,19 +294,43 @@
     });
 
     document.getElementById('setupSave').addEventListener('click', async () => {
+      // Admin 1 (required)
       const adminUser = document.getElementById('su_admin_user').value.trim() || 'Owner';
       const adminPin  = document.getElementById('su_admin_pin').value.trim();
       const adminPin2 = document.getElementById('su_admin_pin2').value.trim();
+
+      // Admin 2 (optional)
+      const admin2User = document.getElementById('su_admin2_user').value.trim();
+      const admin2Pin  = document.getElementById('su_admin2_pin').value.trim();
+      const admin2Pin2 = document.getElementById('su_admin2_pin2').value.trim();
+
+      // Staff (optional)
       const staffUser = document.getElementById('su_staff_user').value.trim();
       const staffPin  = document.getElementById('su_staff_pin').value.trim();
 
-      if (adminPin.length < 4) { showToast('Admin PIN must be at least 4 digits'); return; }
-      if (adminPin !== adminPin2) { showToast('Admin PINs do not match'); return; }
+      if (adminPin.length < 4) { showToast('Admin 1 PIN must be at least 4 digits'); return; }
+      if (adminPin !== adminPin2) { showToast('Admin 1 PINs do not match'); return; }
+
+      // If any Admin 2 field provided, validate fully
+      const admin2Provided = admin2User || admin2Pin || admin2Pin2;
+      if (admin2Provided) {
+        if (!admin2User) { showToast('Admin 2 username is required'); return; }
+        if (admin2Pin.length < 4) { showToast('Admin 2 PIN must be at least 4 digits'); return; }
+        if (admin2Pin !== admin2Pin2) { showToast('Admin 2 PINs do not match'); return; }
+      }
+
+      // Staff validation if provided
+      if (staffUser || staffPin) {
+        if (!staffUser) { showToast('Staff username is required'); return; }
+        if (staffPin.length < 4) { showToast('Staff PIN must be at least 4 digits'); return; }
+      }
 
       try {
         await createUser(adminUser, 'admin', adminPin);
+        if (admin2Provided) {
+          await createUser(admin2User, 'admin', admin2Pin);
+        }
         if (staffUser && staffPin) {
-          if (staffPin.length < 4) { showToast('Staff PIN must be at least 4 digits'); return; }
           await createUser(staffUser, 'staff', staffPin);
         }
         showSetupModal(false);
