@@ -38,6 +38,33 @@
   <!-- Styles -->
   <link rel="stylesheet" href="login.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <!-- Minimal modal + helper styles -->
+  <style>
+    .setup-modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .setup-modal {
+      width: min(520px, 92vw); background: #fff; border-radius: 14px; padding: 20px 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2); color:#222; font-family: system-ui, -apple-system, Arial, sans-serif;
+    }
+    .setup-modal h3 { margin: 0 0 10px; font-size: 20px; }
+    .setup-modal p  { margin: 0 0 14px; color:#555; }
+    .setup-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .setup-modal label { display:block; font-size: 13px; margin-bottom: 6px; color:#333; }
+    .setup-modal input, .setup-modal select {
+      width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;
+    }
+    .setup-actions { display:flex; gap:10px; justify-content:flex-end; margin-top: 16px; }
+    .btn-plain { background:#eee; border:0; border-radius: 10px; padding:10px 14px; cursor:pointer; }
+    .btn-main  { background:#000; color:#fff; border:0; border-radius: 10px; padding:10px 14px; cursor:pointer; }
+    .setup-note { font-size: 12px; color:#777; margin-top: 6px; }
+    .reset-link { text-align:center; margin-top:12px; }
+    .reset-link a { color:#888; text-decoration: none; font-size: 12px; }
+    .reset-link a:hover { text-decoration: underline; color:#000; }
+    @media (max-width: 560px) { .setup-grid { grid-template-columns: 1fr; } }
+  </style>
 </head>
 
 <body>
@@ -56,7 +83,7 @@
         <form id="loginForm">
           <input type="text" id="username" placeholder="Username" required />
           <div class="password-wrapper">
-            <input type="password" id="password" placeholder="Password" required />
+            <input type="password" id="password" placeholder="PIN" required />
             <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
           </div>
 
@@ -72,40 +99,172 @@
         <p id="loginError" style="display: none; color: red; text-align: center; margin-top: 10px;">
           Invalid credentials.
         </p>
+
+        <!-- Reset PINs link -->
+        <div class="reset-link">
+          <a href="#" onclick="resetPins();return false;" title="Clear saved users and re-run setup">Reset PINs</a>
+        </div>
       </div>
     </div>
   </div>
 
-  <script>
-    const users = [
-      { username: "Betty",   password: "admin123", role: "admin" },
-      { username: "Abigail", password: "admin456", role: "admin" },
-      { username: "staff1",  password: "staff123", role: "staff" }
-    ];
+  <!-- First-run Setup Modal -->
+  <div id="setupBackdrop" class="setup-modal-backdrop" aria-hidden="true">
+    <div class="setup-modal" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+      <h3 id="setupTitle">First-time Setup</h3>
+      <p>Create an Admin account (required) and optionally a Staff account. PINs are stored securely (salted hash) on this device.</p>
 
-    document.getElementById("loginForm").addEventListener("submit", function(e) {
+      <div class="setup-grid">
+        <div>
+          <label>Admin Username</label>
+          <input id="su_admin_user" type="text" placeholder="e.g. Owner" value="Owner">
+        </div>
+        <div>
+          <label>Admin PIN (min 4 digits)</label>
+          <input id="su_admin_pin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+        <div>
+          <label>Confirm Admin PIN</label>
+          <input id="su_admin_pin2" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+      </div>
+
+      <div class="setup-grid" style="margin-top:12px;">
+        <div>
+          <label>Staff Username (optional)</label>
+          <input id="su_staff_user" type="text" placeholder="e.g. Staff">
+        </div>
+        <div>
+          <label>Staff PIN (optional, min 4 digits)</label>
+          <input id="su_staff_pin" type="password" inputmode="numeric" pattern="[0-9]*" placeholder="••••">
+        </div>
+      </div>
+
+      <div class="setup-actions">
+        <button class="btn-plain" type="button" id="setupCancel">Cancel</button>
+        <button class="btn-main"  type="button" id="setupSave">Save & Continue</button>
+      </div>
+      <div class="setup-note">Tip: You can change users later by clearing this device’s <code>localStorage["sista_users"]</code> and reloading.</div>
+    </div>
+  </div>
+
+  <script>
+    /* ========= First-run PIN auth (PBKDF2 salted hashes) ========= */
+    const USERS_KEY = 'sista_users'; // [{username, role, salt:number[], hash:string, createdAt}]
+    const SESSION_KEY = 'sista_session';
+
+    function getUsers() {
+      try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function saveUsers(list) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(list));
+    }
+    function findUser(username, role) {
+      const u = (getUsers() || []).find(x => x.username === username && x.role === role);
+      return u || null;
+    }
+    function hasAdmin() {
+      return (getUsers() || []).some(u => u.role === 'admin');
+    }
+
+    async function deriveHash(pin, saltBytes, iterations = 150000) {
+      const enc = new TextEncoder();
+      const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(pin), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', hash: 'SHA-256', salt: saltBytes, iterations },
+        keyMaterial,
+        256
+      );
+      return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function createUser(username, role, pin) {
+      const salt = crypto.getRandomValues(new Uint8Array(16));
+      const hash = await deriveHash(pin, salt);
+      const users = getUsers();
+      if (users.some(u => u.username === username && u.role === role)) {
+        throw new Error('User already exists');
+      }
+      users.push({ username, role, salt: Array.from(salt), hash, createdAt: Date.now() });
+      saveUsers(users);
+    }
+
+    async function validateLogin(username, role, pin) {
+      const user = findUser(username, role);
+      if (!user) return false;
+      const salt = new Uint8Array(user.salt);
+      const hash = await deriveHash(pin, salt);
+      return hash === user.hash;
+    }
+
+    function showSetupModal(show) {
+      const el = document.getElementById('setupBackdrop');
+      el.style.display = show ? 'flex' : 'none';
+      el.setAttribute('aria-hidden', show ? 'false' : 'true');
+    }
+
+    async function ensureFirstRunSetup() {
+      if (!hasAdmin()) showSetupModal(true);
+    }
+
+    // Reset PINs flow (clears users + sessions, shows setup)
+    function resetPins() {
+      const txt = prompt('Type RESET to clear all saved users and sessions on this device.');
+      if (!txt || txt.trim().toUpperCase() !== 'RESET') return;
+      localStorage.removeItem(USERS_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem('loggedUser');
+      showSetupModal(true);
+      alert('Users cleared. Please create new Admin/Staff.');
+    }
+
+    // Wire setup modal buttons
+    document.getElementById('setupCancel').addEventListener('click', () => {
+      if (!hasAdmin()) { alert('Please complete Admin setup to continue.'); return; }
+      showSetupModal(false);
+    });
+
+    document.getElementById('setupSave').addEventListener('click', async () => {
+      const adminUser = document.getElementById('su_admin_user').value.trim() || 'Owner';
+      const adminPin  = document.getElementById('su_admin_pin').value.trim();
+      const adminPin2 = document.getElementById('su_admin_pin2').value.trim();
+      const staffUser = document.getElementById('su_staff_user').value.trim();
+      const staffPin  = document.getElementById('su_staff_pin').value.trim();
+
+      if (adminPin.length < 4) { alert('Admin PIN must be at least 4 digits.'); return; }
+      if (adminPin !== adminPin2) { alert('Admin PINs do not match.'); return; }
+
+      try {
+        await createUser(adminUser, 'admin', adminPin);
+        if (staffUser && staffPin) {
+          if (staffPin.length < 4) { alert('Staff PIN must be at least 4 digits.'); return; }
+          await createUser(staffUser, 'staff', staffPin);
+        }
+        showSetupModal(false);
+        alert('Setup complete! You can now log in.');
+      } catch (e) {
+        console.error(e);
+        alert(e.message || 'Could not save users.');
+      }
+    });
+
+    /* ========= Login handling ========= */
+    document.getElementById("loginForm").addEventListener("submit", async function(e) {
       e.preventDefault();
       const username = document.getElementById("username").value.trim();
-      const password = document.getElementById("password").value.trim();
+      const pin      = document.getElementById("password").value.trim();
       const role     = document.getElementById("role").value;
 
-      const match = users.find(u =>
-        u.username === username && u.password === password && u.role === role
-      );
-
-      if (match) {
-        // Session valid for 8 hours
+      const ok = await validateLogin(username, role, pin);
+      if (ok) {
         const session = {
-          user: { username: match.username, role: match.role },
+          user: { username, role },
           issuedAt: Date.now(),
           expiresAt: Date.now() + 8 * 60 * 60 * 1000
         };
-
-        // Store for auth gate + legacy pages
-        sessionStorage.setItem("sista_session", JSON.stringify(session));
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
         localStorage.setItem("loggedUser", JSON.stringify(session.user));
-
-        // Redirect back to requested page or dashboard
         const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
         location.href = next;
       } else {
@@ -121,6 +280,9 @@
       icon.classList.toggle("fa-eye", !show);
       icon.classList.toggle("fa-eye-slash", show);
     }
+
+    // Show setup if needed on load
+    window.addEventListener('DOMContentLoaded', ensureFirstRunSetup);
   </script>
 
   <!-- Service Worker (relative paths for GitHub Pages project sites) -->
