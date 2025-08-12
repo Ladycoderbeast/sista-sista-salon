@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendar - Sista Sista Salon & Spa</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) {
+    // Not logged in, redirect to login page
+    window.location.href = "index.html";
+  }
+</script>
+
+  <!-- 🌙 Dark Mode Toggle -->
+  <div class="theme-toggle-wrapper">
+    <span>Dark Theme</span>
+    <label class="theme-switch">
+      <input type="checkbox" id="toggleDark">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar">
+    <div class="logo-container">
+      <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+    </div>
+    <nav>
+      <ul>
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="calendar.html" class="active">Calendar</a></li>
+        <li><a href="visits.html">Visits</a></li>
+        <li><a href="#">Clients</a></li>
+        <li><a href="#">Services</a></li>
+        <li><a href="#">Reports</a></li>
+        <li><a href="#" onclick="logout()">Logout</a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <!-- Main Calendar View -->
+  <main class="calendar-container">
+    <div class="calendar-header">
+      <h2>Appointment Calendar</h2>
+      <input type="date" id="calendarDate" />
+      <button id="addAppointment">+ Add Appointment</button>
+    </div>
+
+    <div class="calendar-grid">
+      <!-- Time Column -->
+      <div class="time-column">
+        <!-- Generate 8am–8pm -->
+        <div>8:00</div>
+        <div>9:00</div>
+        <div>10:00</div>
+        <div>11:00</div>
+        <div>12:00</div>
+        <div>1:00</div>
+        <div>2:00</div>
+        <div>3:00</div>
+        <div>4:00</div>
+        <div>5:00</div>
+        <div>6:00</div>
+        <div>7:00</div>
+        <div>8:00</div>
+      </div>
+
+      <!-- Staff Columns -->
+      <div class="staff-column" data-staff="Betty">
+        <div class="staff-header">Betty</div>
+        <div class="appointments" id="appointments-betty"></div>
+      </div>
+      <div class="staff-column" data-staff="Abigail">
+        <div class="staff-header">Abigail</div>
+        <div class="appointments" id="appointments-abigail"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Dark Mode Persistence
+    const toggle = document.getElementById("toggleDark");
+    toggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark", toggle.checked);
+      localStorage.setItem("darkMode", toggle.checked);
+    });
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark");
+      toggle.checked = true;
+    }
+
+    function logout() {
+      localStorage.removeItem("loggedUser");
+      window.location.href = "index.html";
+    }
+
+    // Placeholder: Load Appointments into Betty & Abigail columns later
+  </script>
+</body>
+</html>

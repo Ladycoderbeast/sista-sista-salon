@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Services | Sista Sista Salon & Spa</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  
+  <style>
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .service-card {
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: background-color 0.3s ease;
+    }
+
+    .service-card h3 {
+      margin-bottom: 12px;
+      font-size: 20px;
+      color: #000000;
+    }
+
+    .service-card ul {
+      padding-left: 20px;
+      margin: 0;
+    }
+
+    .service-card ul li {
+      margin-bottom: 6px;
+      font-size: 15px;
+    }
+
+    body.dark .service-card {
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      box-shadow: 0 2px 6px rgba(255,255,255,0.05);
+    }
+
+    body.dark .service-card h3 {
+      color: #ffffff;
+    }
+
+   .user-profile {
+      position: relative;
+      display: inline-block;
+      margin-top: 8px;
+      margin-right: 50px;
+      margin-left: 30px;
+    }
+
+    .user-icon {
+      cursor: pointer;
+      color: #000;
+    }
+
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 50px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    body.dark .user-dropdown {
+      background-color: #444;
+      color: #fff;
+    }
+
+  </style>
+</head>
+<body>
+  <script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) {
+    // Not logged in, redirect to login page
+    window.location.href = "index.html";
+  }
+</script>
+
+
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
+        <a href="services.html" class="active"><i class="fas fa-scissors"></i> Services</a>
+        <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
+        <a href="reservations.html"><i class="fas fa-calendar-check"></i> Reservations</a>
+        <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
+        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+        <a href="index.html" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+     <main class="main-content">
+      <div class="dashboard-header">
+        <div class="theme-toggle-wrapper">
+          <span>Dark Theme</span>
+          <label class="theme-switch">
+            <input type="checkbox" id="toggleDark" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="user-profile">
+          <div class="user-icon" id="userIcon">
+            <i class="fas fa-user-circle fa-2x"></i>
+          </div>
+          <div class="user-dropdown" id="userDropdown">
+  <p id="loggedInUser">Loading...</p>
+  <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+</div>
+        </div>
+      </div>
+
+
+      <div class="dashboard-body">
+        <h2>Services</h2>
+
+        <div class="services-grid">
+          <div class="service-card">
+            <h3>Natural Hair</h3>
+            <ul>
+              <li>Shampoo & Conrow</li>
+              <li>Detangling Shampoo Blowout</li>
+              <li>Natural Ponytail Hair No Silk Press</li>
+              <li>Silk Press</li>
+              <li>Conditioning Treatment</li>
+              <li>Dandruff Treatment</li>
+              <li>Olapex Breakage Treatment</li>
+              <li>K18 Treatment</li>
+              <li>Wig sew in(closure)</li>
+              <li>Wig sew in(frontal)</li>
+              <li>Wig revamp(shampooing+curling)</li>
+              <li>Wig revamp(shampooing+straight)</li>
+              <li>Wig install (frontal) sticking</li>
+              <li>Relax cut & style(pixie)</li>
+              <li>Shampoo & style(short hair)</li>
+              <li>Wig straightening or curling of weaves</li>
+            </ul>
+            </div>
+
+          <div class="service-card">
+            <h3>Relaxed Hair</h3>
+            <ul>
+              <li>Shampoo+Blow Drying+Straightening</li>
+              <li>Shampoo+roller setting</li>
+              <li>Shampoo & Conrows</li>
+              <li>Relaxer+blowdrying+<br>straightening</br>(salon cream)one</li>
+              <li>Relaxer+Rollerset one & half(salon cream)</li>
+              <li>Relaxer+blowdrying+<br>straightening</br>one & half</li>
+              <li>Relaxer two (salon cream)</li>
+              <li>Relaxer+blowouts one & half(salon cream)</li>
+              <li>Relaxer+roller setting(personal cream)</li>
+              <li>Relaxer+blowdrying+<br>straightening</br>(personal cream)</br></li>
+              <li>Own relaxer without shampoo & conditioner</li>
+              <li>Extra</li>
+              <li>Trimming</li>
+              <li>Cutting</li>
+              <li>Other Con-rows</li>
+              <li>Conditioning treatment</li>
+              <li>Dandruff treatment</li>
+              <li>Olaplex Breakage treatment</li>
+              <li>K18 Treatment</li>
+              <li>Traditional sew in</li>
+              <li>Closure sew in</li>
+              <li>Tracks glue</li>
+              <li>Tracks sew in</li>
+              <li>Relaxed hair ponytail </li>
+              <li>Relaxer front & back</li>
+            </ul>
+          </div>
+
+          <div class="service-card">
+            <h3>Nails</h3>
+            <ul>
+    <li>Pedicure & No polish</li>
+    <li>Pedicure & Regular polish</li>
+    <li>Pedicure & Gel polish</li>
+    <li>Pedicure & Acrylic on toes</li>
+    <li>Pedicure & stick on</li>
+    <li>Pedicure stick on & French</li>
+    <li>Extra for French tips</li>
+    <li>Jelly Pedicure & Gel polish</li>
+    <li>Pedicure Men</li>
+    <li>Manicure</li>
+    <li>Regular Polish</li>
+    <li>Basic Gel polish</li>
+    <li>BIAB / Structured Gel polish</li>
+    <li>Hard Gel + Gel polish</li>
+    <li>Acrylic Full nails</li>
+    <li>Acrylic nails on toes</li>
+    <li>Acrylic on toes refill</li>
+    <li>Acrylic refill (did full set with us)</li>
+    <li>Acrylic refill ( did not do full set with us)</li>
+    <li>Stick on/ Gel polish</li>
+    <li>Dissolving</li>
+    <li>Dissolving + Manicure</li>
+            </ul>
+          </div>
+
+          <div class="service-card">
+            <h3>Waxing</h3>
+            <ul>
+              <li>Eyebrow Wax</li>
+              <li>Chin Wax</li>
+              <li>Chest Wax</li>
+              <li>Eyebrow shaping</li>
+              <li>Upper lip</li>
+              <li>Under arm</li>
+              <li>Stomach</li>
+              <li>Full arm</li>
+              <li>Half arm</li>
+              <li>Half Legs</li>
+              <li>Full leg</li>
+              <li>Bikini area</li>
+              <li>Full Face</li>
+              <li>Hollywood wax</li>
+              </ul>
+          </div>
+
+          <div class="service-card">
+            <h3>Spa</h3>
+    <li>Hot stone massage 1hr</li>
+    <li>Hot stone massage 1hr 30mins</li>
+    <li>Deep tissue massage 30mins</li>
+    <li>Deep tissue massage 1hr</li>
+    <li>Deep tissue massage 1hr 30mins</li>
+    <li>Swedish massage 30mins</li>
+    <li>Swedish massage 1hr</li>
+    <li>Swedish massage 1hr 30mins</li>
+    <li>Body Scrub</li>
+    <li>Steam Therapy</li>
+    <li>Back Treatment</li>
+    <li>Facials Deep cleanse</li>
+    <li>Facials Deep cleanse (upgrade)</li>
+    <li>Facials Rejuvenation</li>
+    <li>Facials Anti acne</li>
+    <li>Facials Dermplane (Extra)</li>
+          </ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <div class="app-footer">
+    &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+    Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+  </div>
+
+  <script src="app.js"></script>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const userIcon = document.querySelector('.user-icon');
+    const userPopup = document.getElementById('userPopup');
+    const username = localStorage.getItem('loggedInUser');
+
+    if (username && userPopup) {
+      userPopup.textContent = username;
+
+      userIcon.addEventListener('click', () => {
+        userPopup.style.display = userPopup.style.display === 'block' ? 'none' : 'block';
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!userIcon.contains(e.target) && !userPopup.contains(e.target)) {
+          userPopup.style.display = 'none';
+        }
+      });
+    }
+  });
+
+  document.addEventListener("DOMContentLoaded", () => {
+  const predefinedServices = [
+    { category: "Natural Hair", services: ["Wash and blow dry", "Twists", "Cornrows", "Silk Press", "Wash and Treatment", "Loc Styling", "Loc Maintenance"] },
+    { category: "Relaxed Hair", services: ["Wash and Set", "Treatment", "Relaxer", "Texturizer", "Retouch", "Trim"] },
+    { category: "Nails", services: ["Acrylic Tips", "Manicure", "Pedicure", "Gel Polish", "Nail Art"] },
+    { category: "Waxing", services: ["Eyebrow Wax", "Underarm Wax", "Leg Wax", "Bikini Wax", "Full Body Wax"] },
+    { category: "Spa", services: ["Facial", "Body Massage", "Body Scrub", "Steam Therapy", "Back Treatment"] }
+  ];
+
+  const request = indexedDB.open("SalonDB", 1);
+  request.onsuccess = function (e) {
+    const db = e.target.result;
+    const tx = db.transaction("services", "readwrite");
+    const store = tx.objectStore("services");
+
+    predefinedServices.forEach(group => {
+      group.services.forEach(name => {
+        const service = { category: group.category, name };
+        store.add(service);
+      });
+    });
+
+    tx.oncomplete = () => console.log("Services saved to IndexedDB.");
+    tx.onerror = e => console.error("Error saving services:", e.target.error);
+  };
+});
+
+</script>
+<script>
+  function logout() {
+    // kill the session used by auth.js
+    sessionStorage.removeItem("sista_session");
+
+    // keep your existing clears
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+
+    // redirect (prevents back-nav into protected page)
+    window.location.replace("index.html");
+  }
+</script>
+
+
+<script src="user-icon.js"></script>
+</body>
+</html>

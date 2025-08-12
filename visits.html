@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Visit | Sista Sista Salon & Spa</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+</head>
+
+<style>
+  .user-profile {
+      position: relative;
+      display: inline-block;
+      margin-top: 8px;
+      margin-right: 50px;
+      margin-left: 30px;
+    }
+
+    .user-icon {
+      cursor: pointer;
+      color: #000;
+    }
+
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 50px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    body.dark .user-dropdown {
+      background-color: #444;
+      color: #fff;
+    }
+
+    .toast {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #000000;
+      color: white;
+      text-align: center;
+      border-radius: 8px;
+      padding: 12px 20px;
+      position: fixed;
+      z-index: 9999;
+      right: 30px;
+      bottom: 30px;
+      font-size: 16px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      transition: opacity 0.5s ease, bottom 0.5s ease;
+    }
+
+    .toast.show {
+      visibility: visible;
+      opacity: 1;
+      bottom: 50px;
+    }
+</style>
+
+<body>
+  <script>
+  const user = JSON.parse(sessionStorage.getItem("loggedUser"));
+  if (!user || !user.role) {
+    // Not logged in, redirect to login page
+    window.location.href = "index.html";
+  }
+</script>
+
+
+  <div class="dashboard-container">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
+        <a href="visits.html" class="active"><i class="fas fa-calendar-plus"></i> Add Visit</a>
+        <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
+        <a href="reservations.html"><i class="fas fa-calendar-check"></i> Reservations</a>
+        <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
+        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+        <a href="index.html" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="dashboard-header">
+        <div class="theme-toggle-wrapper">
+          <span>Dark Theme</span>
+          <label class="theme-switch">
+            <input type="checkbox" id="toggleDark" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="user-profile">
+          <div class="user-icon" id="userIcon">
+            <i class="fas fa-user-circle fa-2x"></i>
+          </div>
+          <div class="user-dropdown" id="userDropdown">
+  <p id="loggedInUser">Loading...</p>
+  <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+</div>
+        </div>
+      </div>
+
+      <div class="dashboard-body">
+        <div class="form-wrapper-column">
+          <h2 class="form-heading">Add New Visit</h2>
+
+          <form id="visitForm" class="form-card" autocomplete="off">
+            <input type="text" name="clientName" placeholder="Client Name" required />
+            <input type="tel" name="phone" placeholder="Phone Number" required />
+
+            <select name="service" required>
+              <option value="">Select Service</option>
+              <optgroup label="Natural Hair">
+                <option>Wash and blow dry</option>
+                <option>Twists</option>
+                <option>Cornrows</option>
+                <option>Silk Press</option>
+                <option>Wash and Treatment</option>
+                <option>Loc Styling</option>
+                <option>Loc Maintenance</option>
+              </optgroup>
+              <optgroup label="Relaxed Hair">
+                <option>Wash and Set</option>
+                <option>Treatment</option>
+                <option>Relaxer</option>
+                <option>Texturizer</option>
+                <option>Retouch</option>
+                <option>Trim</option>
+              </optgroup>
+              <optgroup label="Nails">
+                <option>Acrylic Tips</option>
+                <option>Manicure</option>
+                <option>Pedicure</option>
+                <option>Gel Polish</option>
+                <option>Nail Art</option>
+              </optgroup>
+              <optgroup label="Waxing">
+                <option>Eyebrow Wax</option>
+                <option>Underarm Wax</option>
+                <option>Leg Wax</option>
+                <option>Bikini Wax</option>
+                <option>Full Body Wax</option>
+              </optgroup>
+              <optgroup label="Spa">
+                <option>Facial</option>
+                <option>Body Massage</option>
+                <option>Body Scrub</option>
+                <option>Steam Therapy</option>
+                <option>Back Treatment</option>
+                <option>Pedicure</option>
+              </optgroup>
+            </select>
+
+            <input type="file" name="photo" />
+            <input type="text" name="amount" id="amountPaid" placeholder="Amount Paid (Admin Only)" />
+            <input type="date" name="date" required />
+            <input type="time" name="time" required />
+
+            <button type="submit" class="btn">Save Visit</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Footer -->
+  <div class="app-footer">
+    &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+    Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+  </div>
+    </main>
+  </div>
+<script>
+  function logout() {
+    // kill the session used by auth.js
+    sessionStorage.removeItem("sista_session");
+
+    // keep your existing clears
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+
+    // redirect (prevents back-nav into protected page)
+    window.location.replace("index.html");
+  }
+</script>
+
+
+  <script src="app.js"></script>
+
+  <script src="user-icon.js"></script>
+
+  <div id="toast" class="toast"></div>
+
+</body>
+</html>

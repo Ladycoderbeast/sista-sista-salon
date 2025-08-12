@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reviews | Sista Sista Salon & Spa</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <style>
+    body {
+  height: 100vh;
+  overflow-y: auto;
+}
+
+html, body {
+  height: auto;
+  overflow-y: auto;
+}
+
+    .review-form {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      margin: 2rem auto;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .review-form form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .review-form form textarea {
+      grid-column: 1 / -1;
+    }
+
+    .review-form form button {
+      grid-column: 1 / -1;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #000;
+      color: #fff;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .review-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      margin-top: 2rem;
+    }
+
+    .review-table th, .review-table td {
+      padding: 12px;
+      text-align: left;
+      border: 1px solid #ddd;
+    }
+
+    .review-table th {
+      background-color: #f2f2f2;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 10px 20px;
+    }
+
+    .user-profile {
+      position: relative;
+      display: inline-block;
+      margin-left: 20px;
+    }
+
+    .user-dropdown {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 50px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+      z-index: 1;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    body.dark .user-dropdown {
+      background-color: #444;
+      color: #fff;
+    }
+
+    .brand-highlight {
+  color: #000;
+}
+
+.dark .brand-highlight {
+  color: #fff;
+}
+
+
+    @media screen and (max-width: 768px) {
+      .review-form form {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .review-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 20px auto;
+  max-width: 900px;
+  padding-right: 20px;
+}
+
+.review-controls button {
+  background: #000;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.review-controls button:hover {
+  background: #444;
+}
+
+  </style>
+</head>
+
+<body>
+    <script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) {
+    // Not logged in, redirect to login page
+    window.location.href = "index.html";
+  }
+</script>
+
+
+  <div class="dashboard-container">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+      </div>
+      <div class="sidebar-nav">
+        <a href="dashboard.html"><i class="fa fa-home"></i> Dashboard</a>
+        <a href="clients.html"><i class="fa fa-users"></i> Clients</a>
+        <a href="services.html"><i class="fa fa-scissors"></i> Services</a>
+        <a href="reviews.html" class="active"><i class="fa fa-comments"></i> Reviews</a>
+        <a href="reservations.html"><i class="fa fa-calendar"></i> Reservations</a>
+        <a href="reports.html"><i class="fa fa-chart-line"></i> Reports</a>
+        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+        <a href="index.html"><i class="fa fa-sign-out-alt"></i> Logout</a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="dashboard-header">
+        <div class="theme-toggle-wrapper">
+          <span>Dark Theme</span>
+          <label class="theme-switch">
+            <input type="checkbox" id="toggleDark" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="user-profile">
+          <div class="user-icon" id="userIcon">
+            <i class="fas fa-user-circle fa-2x"></i>
+          </div>
+          <div class="user-dropdown" id="userDropdown">
+  <p id="loggedInUser">Loading...</p>
+  <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+</div>
+        </div>
+      </div>
+      
+<h2 style="text-align: center; font-weight: bold; margin-top: 20px;">
+  Share Your Experience at 
+  <span class="brand-highlight">Sista Sista Salon & Spa</span>
+</h2>
+<p style="text-align: center; color: var(--text-light); margin-bottom: 10px;">
+  We value your feedback! Please leave a review about your recent visit.
+</p>
+
+      <!-- Review Form -->
+      <div class="review-form">
+        <form id="reviewForm">
+          <input type="text" id="name" placeholder="Full Name" required />
+          <select id="service" required>
+            <option value="">Select Service</option>
+  <optgroup label="Natural Hair">
+    <option>Shampoo & Conrow</option>
+    <option>Detangling Shampoo Blowout</option>
+    <option>Natural Ponytail Hair No Silk Press</option>
+    <option>Silk Press</option>
+    <option>Conditioning Treatment</option>
+    <option>Dandruff Treatment</option>
+    <option>Olapex Breakage Treatment</option>
+    <option>K18 Treatment</option>
+    <option>Wig sew in(closure)</option>
+    <option>Wig sew in(frontal)</option>
+    <option>Wig revamp(shampooing+curling)</option>
+    <option>Wig revamp(shampooing+straight)</option>
+    <option>Wig install ( frontal) sticking</option>
+    <option>Relax cut & style( pixie)</option>
+    <option>Shampoo & style (short hair)</option>
+    <option>Wig straightening or curling of weaves</option>
+  </optgroup>
+  <optgroup label="Relaxed Hair">
+    <option>Shampoo+Blow Drying+Straightening</option>
+    <option>Shampoo+roller setting</option>
+    <option>Shampoo & Conrows</option>
+    <option>Relaxer+blowdrying+straightening(salon cream)one</option>
+    <option>Relaxer+Rollerset one & half(salon cream)</option>
+    <option>Relaxer+blowdrying+straightening one & half</option>
+    <option>Relaxer two (salon cream)</option>
+    <option>Relaxer+blowouts one & half(salon cream)</option>
+    <option>Relaxer+roller setting(personal cream)</option>
+    <option>Relaxer+blowdrying+straightening(personal cream)</option>
+    <option>Own relaxer without shampoo & conditioner</option>
+    <option>Extra</option>
+    <option>Trimming</option>
+    <option>Cutting</option>
+    <option>Other Con-rows</option>
+    <option>Conditioning treatment</option>
+    <option>Dandruff treatment</option>
+    <option>Olaplex Breakage treatment</option>
+    <option>K18 Treatment</option>
+    <option>Traditional sew in</option>
+    <option>Closure sew in</option>
+    <option>Tracks glue</option>
+    <option>Tracks sew in</option>
+    <option>Relaxed hair ponytail </option>
+    <option>Relaxer front & back</option>
+  </optgroup>
+  <optgroup label="Nails">
+    <option>Pedicure & No polish</option>
+    <option>Pedicure + Regular polish</option>
+    <option>Pedicure + Gel polish</option>
+    <option>Pedicure + Acrylic on toes</option>
+    <option>Pedicure + stick on</option>
+    <option>Pedicure stick on + French</option>
+    <option>Extra for French tips</option>
+    <option>Jelly Pedicure & Gel polish</option>
+    <option>Pedicure men</option>
+    <option>Manicure</option>
+    <option>Regular Polish</option>
+    <option>Basic Gel polish</option>
+    <option>BIAB / Structured Gel polish</option>
+    <option>Hard Gel + Gel polish</option>
+    <option>Acrylic Full nails</option>
+    <option>Acrylic nails on toes</option>
+    <option>Acrylic on toes refill</option>
+    <option>Acrylic refill (did full set with us)</option>
+    <option>Acrylic refill ( did not do full set with us)</option>
+    <option>Stick on/ Gel polish</option>
+    <option>Dissolving</option>
+    <option>Dissolving + Manicure</option>
+  </optgroup>
+  <optgroup label="Waxing">
+    <option>Eyebrow Wax</option>
+    <option>Chin Wax</option>
+    <option>Chest Wax</option>
+    <option>Eyebrow shaping</option>
+    <option>Upper lip</option>
+    <option>Under arm</option>
+    <option>Stomach</option>
+    <option>Full arm</option>
+    <option>Half arm</option>
+    <option>Half Legs</option>
+    <option>Full leg</option>
+    <option>Bikini area</option>
+    <option>Full Face</option>
+    <option>Hollywood wax</option>
+  </optgroup>
+  <optgroup label="Spa">
+    <option>Hot stone massage 1hr</option>
+    <option>Hot stone massage 1hr 30mins</option>
+    <option>Deep tissue massage 30mins</option>
+    <option>Deep tissue massage 1hr</option>
+    <option>Deep tissue massage 1hr 30mins</option>
+    <option>Swedish massage 30mins</option>
+    <option>Swedish massage 1hr</option>
+    <option>Swedish massage 1hr 30mins</option>
+    <option>Body Scrub</option>
+    <option>Steam Therapy</option>
+    <option>Back Treatment</option>
+    <option>Facials Deep cleanse</option>
+    <option>Facials Deep cleanse (upgrade)</option>
+    <option>Facials Rejuvenation</option>
+    <option>Facials Anti acne</option>
+    <option>Facials Dermplane (Extra)</option>
+  </optgroup>
+</select>
+
+          <select id="rating" required>
+            <option value="">Select Rating</option>
+            <option value="1">⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="5">⭐⭐⭐⭐⭐</option>
+          </select>
+
+          <textarea id="message" placeholder="Write your review..." required></textarea>
+          <button type="submit">Submit Review</button>
+        </form>
+      </div>
+
+      <div class="review-controls" id="reviewExportControls">
+  <button onclick="printReviews()">🖨️ Print</button>
+  <button onclick="exportReviewsCSV()">📄 Export CSV</button>
+  <button onclick="exportReviewsPDF()">📕 Export PDF</button>
+</div>
+
+
+
+<div style="text-align: right; margin: 20px 30px 10px 0;">
+  <label for="serviceFilter" style="margin-right: 10px; font-weight: bold;">Filter by Service:</label>
+  <select id="serviceFilter" style="padding: 5px 10px; border-radius: 6px;">
+    <option value="All">All Services</option>
+    <option value="Natural Hair">Natural Hair</option>
+    <option value="Relaxed Hair">Relaxed Hair</option>
+    <option value="Nails">Nails</option>
+    <option value="Waxing">Waxing</option>
+    <option value="Spa">Spa</option>
+    <!-- Add more services here if needed -->
+  </select>
+</div>
+
+      <!-- Review Table -->
+      <table class="review-table" id="reviewTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Service</th>
+            <th>Rating</th>
+            <th>Message</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </main>
+  </div>
+
+  <!-- Footer -->
+  <div class="app-footer">
+    &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+    Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+  </div>
+
+  <!-- Toast Notification -->
+<div id="toast" style="
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #000;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 9999;
+  pointer-events: none;
+">
+  Review submitted successfully!
+</div>
+
+  <!-- Scripts -->
+  <script src="new-app.js"></script>
+  <script src="user-icon.js"></script>
+
+  <script>
+  // Dark Mode Toggle Logic
+  const toggleDark = document.getElementById("toggleDark");
+  const isDarkMode = localStorage.getItem("darkMode") === "true";
+
+  if (isDarkMode) {
+    document.body.classList.add("dark");
+    toggleDark.checked = true;
+  }
+
+  toggleDark.addEventListener("change", () => {
+    if (toggleDark.checked) {
+      document.body.classList.add("dark");
+      localStorage.setItem("darkMode", "true");
+    } else {
+      document.body.classList.remove("dark");
+      localStorage.setItem("darkMode", "false");
+    }
+  });
+</script>
+
+<script>
+  function logout() {
+    // kill the session used by auth.js
+    sessionStorage.removeItem("sista_session");
+
+    // keep your existing clears
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+
+    // redirect (prevents back-nav into protected page)
+    window.location.replace("index.html");
+  }
+</script>
+
+
+ <script>
+  // Get user from localStorage safely
+  let currentUser = null;
+  try {
+    currentUser = JSON.parse(localStorage.getItem("loggedUser"));
+  } catch (e) {
+    console.error("Invalid user in localStorage:", e);
+  }
+
+  // Hide export controls if not admin
+  if (!currentUser || currentUser.role !== "admin") {
+    const exportControls = document.getElementById("reviewExportControls");
+    if (exportControls) exportControls.style.display = "none";
+  }
+</script>
+
+</body>
+</html>

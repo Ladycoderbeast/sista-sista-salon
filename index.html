@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Fullscreen on iPad (uses the whole safe area) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Login | Sista Sista Salon & Spa</title>
+
+  <!-- iOS / PWA meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Sista Sista Salon">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#ffffff" />
+
+  <!-- Manifest -->
+  <link rel="manifest" href="./manifest.json" type="application/manifest+json">
+
+  <!-- App Icons (iOS picks best size) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="assets/icons/icon-180.png?v=1">
+  <link rel="apple-touch-icon" sizes="167x167" href="assets/icons/icon-167.png?v=1">
+  <link rel="apple-touch-icon" sizes="152x152" href="assets/icons/icon-152.png?v=1">
+  <!-- Fallback favicon for browsers -->
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+
+  <!-- Splash Screens for iPad Pro 13″ (1032×1376 @2x) -->
+  <link rel="apple-touch-startup-image" href="assets/splash/splash-2064x2752.png"
+        media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="assets/splash/splash-2752x2064.png"
+        media="(device-width: 1032px) and (device-height: 1376px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+
+  <!-- Splash Screens for iPad Pro 12.9″ (1024×1366 @2x) -->
+  <link rel="apple-touch-startup-image" href="assets/splash/splash-2048x2732.png"
+        media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+  <link rel="apple-touch-startup-image" href="assets/splash/splash-2732x2048.png"
+        media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: landscape)">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="login.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+  <div class="login-wrapper">
+    <div class="login-image">
+      <img src="assets/sista-sista-home.jpeg" alt="Sista Sista Salon" />
+    </div>
+
+    <div class="login-form-box">
+      <div class="login-box">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" style="max-width: 180px;">
+          <p style="margin-top: 10px; font-size: 20px; font-weight: bold; color: #333;">Login to manage Salon</p>
+        </div>
+
+        <form id="loginForm">
+          <input type="text" id="username" placeholder="Username" required />
+          <div class="password-wrapper">
+            <input type="password" id="password" placeholder="Password" required />
+            <i class="fas fa-eye toggle-password" onclick="togglePassword()"></i>
+          </div>
+
+          <select id="role" required>
+            <option value="">Select Role</option>
+            <option value="admin">Admin</option>
+            <option value="staff">Staff</option>
+          </select>
+
+          <button type="submit">Login</button>
+        </form>
+
+        <p id="loginError" style="display: none; color: red; text-align: center; margin-top: 10px;">
+          Invalid credentials.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const users = [
+      { username: "Betty",   password: "admin123", role: "admin" },
+      { username: "Abigail", password: "admin456", role: "admin" },
+      { username: "staff1",  password: "staff123", role: "staff" }
+    ];
+
+    document.getElementById("loginForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const role     = document.getElementById("role").value;
+
+      const match = users.find(u =>
+        u.username === username && u.password === password && u.role === role
+      );
+
+      if (match) {
+        // Session valid for 8 hours
+        const session = {
+          user: { username: match.username, role: match.role },
+          issuedAt: Date.now(),
+          expiresAt: Date.now() + 8 * 60 * 60 * 1000
+        };
+
+        // Store for auth gate + legacy pages
+        sessionStorage.setItem("sista_session", JSON.stringify(session));
+        localStorage.setItem("loggedUser", JSON.stringify(session.user));
+
+        // Redirect back to requested page or dashboard
+        const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
+        location.href = next;
+      } else {
+        document.getElementById("loginError").style.display = "block";
+      }
+    });
+
+    function togglePassword() {
+      const input = document.getElementById("password");
+      const icon  = document.querySelector(".toggle-password");
+      const show  = input.type === "password";
+      input.setAttribute("type", show ? "text" : "password");
+      icon.classList.toggle("fa-eye", !show);
+      icon.classList.toggle("fa-eye-slash", show);
+    }
+  </script>
+
+  <!-- Service Worker (relative paths for GitHub Pages project sites) -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker
+          .register('./sw.js', { scope: './' })
+          .then(reg => console.log('✅ Service Worker registered at scope:', reg.scope))
+          .catch(err => console.error('❌ SW registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>

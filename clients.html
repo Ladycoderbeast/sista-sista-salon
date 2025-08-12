@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clients | Sista Sista Salon & Spa</title>
+<script src="auth.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <!-- PDF export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
+  <style>
+    .user-profile { position: relative; display: inline-block; margin-top: 8px; margin-right: 50px; margin-left: 30px; }
+    .user-icon { cursor: pointer; color: #000; }
+    .user-dropdown { display: none; position: absolute; background-color: white; min-width: 50px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; padding: 10px; }
+    body.dark .user-dropdown { background-color: #444; color: #fff; }
+
+    .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: none; align-items: center; justify-content: center; background-color: rgba(0, 0, 0, 0.4); z-index: 1000; }
+
+    .admin-only { display: table-cell; }
+    body.staff .admin-only { display: none !important; }
+
+    .client-list { max-height: 60vh; overflow-y: auto; }
+
+    .toast { visibility: hidden; min-width: 200px; margin-left: -100px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 9999; left: 50%; bottom: 30px; font-size: 16px; opacity: 0; transition: opacity 0.5s ease-in-out, bottom 0.5s ease-in-out; }
+    .summary-cards { margin-top: 40px; }
+    .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
+    #imageModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
+
+    .main-content { width: 100%; overflow-x: hidden; padding: 1rem; box-sizing: border-box; }
+    .table-wrapper { overflow-x: auto; width: 100%; }
+
+    .clients-table { width: 100%; border-collapse: collapse; table-layout: fixed; word-wrap: break-word; }
+    .clients-table th, .clients-table td { padding: 20px; text-align: left; white-space: normal; word-break: break-word; font-size: 14px; }
+  </style>
+</head>
+
+<body>
+<script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) { window.location.href = "index.html"; }
+</script>
+
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+    </div>
+    <div class="sidebar-nav">
+      <a href="dashboard.html"><i class="fa fa-home"></i> Dashboard</a>
+      <a href="clients.html" class="active"><i class="fa fa-users"></i> Clients</a>
+      <a href="services.html"><i class="fa fa-scissors"></i> Services</a>
+      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
+      <a href="reservations.html"><i class="fa fa-calendar"></i> Reservations</a>
+      <a href="reports.html"><i class="fa fa-chart-line"></i> Reports</a>
+      <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+      <a href="index.html"><i class="fa fa-sign-out-alt"></i> Logout</a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="theme-toggle-wrapper">
+        <span>Dark Theme</span>
+        <label class="theme-switch">
+          <input type="checkbox" id="toggleDark" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="user-profile">
+        <div class="user-icon" id="userIcon">
+          <i class="fas fa-user-circle fa-2x"></i>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <p id="loggedInUser">Loading...</p>
+          <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="summary-cards" id="clientSummaryCards">
+      <div class="summary-card"><i class="fa fa-users"></i><div><h3 id="totalClientsCard">0</h3><p>Total Clients</p></div></div>
+      <div class="summary-card"><i class="fa fa-sync-alt"></i><div><h3 id="returningClients">0</h3><p>Returning Clients</p></div></div>
+      <div class="summary-card"><i class="fa fa-star"></i><div><h3 id="newClients">0</h3><p>New Clients</p></div></div>
+      <div class="summary-card"><i class="fa fa-female"></i><div><h3 id="femaleClients">0</h3><p>Female Clients</p></div></div>
+      <div class="summary-card"><i class="fa fa-male"></i><div><h3 id="maleClients">0</h3><p>Male Clients</p></div></div>
+    </div>
+
+    <div class="clients-wrapper">
+      <button type="button" class="btn" onclick="openAddClientModal()">Add New Client</button>
+      <div class="client-list">
+        <div class="client-controls" style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+          <input type="text" id="clientSearchInput" placeholder="Search by name, phone, service or staff..." style="padding: 8px; flex: 1; min-width: 200px;" />
+          <select id="serviceFilter" style="padding: 8px;">
+            <option value="">All Services</option>
+            <!-- Service options will be auto-filled -->
+          </select>
+          <button onclick="exportClientsCSV()" class="btn">Export CSV</button>
+          <button onclick="exportClientsPDF()" class="btn">Export PDF</button>
+          <button onclick="printClientsTable()" class="btn">Print</button>
+        </div>
+
+        <table class="clients-table" id="clientsTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Gender</th>
+              <th>Photo</th>
+              <th>Service</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Staff</th> <!-- ✅ NEW column -->
+              <th class="admin-only">Amount</th>
+              <th class="admin-only">Payment</th>
+              <th class="admin-only">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Footer -->
+<div class="app-footer">
+  &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+  Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+</div>
+
+<!-- Add Client Modal -->
+<div id="addClientModal" class="modal">
+  <div class="form-card">
+    <h3>Add New Client</h3>
+
+    <input type="text" id="clientName" placeholder="Full Name" required />
+    <input type="text" id="clientPhone" placeholder="Phone Number" required />
+
+    <select id="clientGender">
+      <option value="">Select Gender</option>
+      <option value="Female">Female</option>
+      <option value="Male">Male</option>
+    </select>
+
+    <select id="clientService" name="service" required>
+      <option value="">Select Service</option>
+      <optgroup label="Natural Hair">
+        <option>Shampoo & Conrow</option>
+        <option>Detangling Shampoo Blowout</option>
+        <option>Natural Ponytail Hair No Silk Press</option>
+        <option>Silk Press</option>
+        <option>Conditioning Treatment</option>
+        <option>Dandruff Treatment</option>
+        <option>Olapex Breakage Treatment</option>
+        <option>K18 Treatment</option>
+        <option>Wig sew in(closure)</option>
+        <option>Wig sew in(frontal)</option>
+        <option>Wig revamp(shampooing+curling)</option>
+        <option>Wig revamp(shampooing+straight)</option>
+        <option>Wig install ( frontal) sticking</option>
+        <option>Relax cut & style( pixie)</option>
+        <option>Shampoo & style (short hair)</option>
+        <option>Wig straightening or curling of weaves</option>
+      </optgroup>
+      <optgroup label="Relaxed Hair">
+        <option>Shampoo+Blow Drying+Straightening</option>
+        <option>Shampoo+roller setting</option>
+        <option>Shampoo & Conrows</option>
+        <option>Relaxer+blowdrying+straightening(salon cream)one</option>
+        <option>Relaxer+Rollerset one & half(salon cream)</option>
+        <option>Relaxer+blowdrying+straightening one & half</option>
+        <option>Relaxer two (salon cream)</option>
+        <option>Relaxer+blowouts one & half(salon cream)</option>
+        <option>Relaxer+roller setting(personal cream)</option>
+        <option>Relaxer+blowdrying+straightening(personal cream)</option>
+        <option>Own relaxer without shampoo & conditioner</option>
+        <option>Extra</option>
+        <option>Trimming</option>
+        <option>Cutting</option>
+        <option>Other Con-rows</option>
+        <option>Conditioning treatment</option>
+        <option>Dandruff treatment</option>
+        <option>Olaplex Breakage treatment</option>
+        <option>K18 Treatment</option>
+        <option>Traditional sew in</option>
+        <option>Closure sew in</option>
+        <option>Tracks glue</option>
+        <option>Tracks sew in</option>
+        <option>Relaxed hair ponytail </option>
+        <option>Relaxer front & back</option>
+      </optgroup>
+      <optgroup label="Nails">
+        <option>Pedicure & No polish</option>
+        <option>Pedicure + Regular polish</option>
+        <option>Pedicure + Gel polish</option>
+        <option>Pedicure + Acrylic on toes</option>
+        <option>Pedicure + stick on</option>
+        <option>Pedicure stick on + French</option>
+        <option>Extra for French tips</option>
+        <option>Jelly Pedicure & Gel polish</option>
+        <option>Pedicure men</option>
+        <option>Manicure</option>
+        <option>Regular Polish</option>
+        <option>Basic Gel polish</option>
+        <option>BIAB / Structured Gel polish</option>
+        <option>Hard Gel + Gel polish</option>
+        <option>Acrylic Full nails</option>
+        <option>Acrylic nails on toes</option>
+        <option>Acrylic on toes refill</option>
+        <option>Acrylic refill (did full set with us)</option>
+        <option>Acrylic refill ( did not do full set with us)</option>
+        <option>Stick on/ Gel polish</option>
+        <option>Dissolving</option>
+        <option>Dissolving + Manicure</option>
+      </optgroup>
+      <optgroup label="Waxing">
+        <option>Eyebrow Wax</option>
+        <option>Chin Wax</option>
+        <option>Chest Wax</option>
+        <option>Eyebrow shaping</option>
+        <option>Upper lip</option>
+        <option>Under arm</option>
+        <option>Stomach</option>
+        <option>Full arm</option>
+        <option>Half arm</option>
+        <option>Half Legs</option>
+        <option>Full leg</option>
+        <option>Bikini area</option>
+        <option>Full Face</option>
+        <option>Hollywood wax</option>
+      </optgroup>
+      <optgroup label="Spa">
+        <option>Hot stone massage 1hr</option>
+        <option>Hot stone massage 1hr 30mins</option>
+        <option>Deep tissue massage 30mins</option>
+        <option>Deep tissue massage 1hr</option>
+        <option>Deep tissue massage 1hr 30mins</option>
+        <option>Swedish massage 30mins</option>
+        <option>Swedish massage 1hr</option>
+        <option>Swedish massage 1hr 30mins</option>
+        <option>Body Scrub</option>
+        <option>Steam Therapy</option>
+        <option>Back Treatment</option>
+        <option>Facials Deep cleanse</option>
+        <option>Facials Deep cleanse (upgrade)</option>
+        <option>Facials Rejuvenation</option>
+        <option>Facials Anti acne</option>
+        <option>Facials Dermplane (Extra)</option>
+      </optgroup>
+    </select>
+
+    <input type="file" id="clientPhoto" accept="image/*" />
+    <input type="number" id="clientAmount" placeholder="Amount Paid" />
+
+    <select id="clientPaymentMethod" required>
+      <option value="">Payment Method</option>
+      <option value="Mobile Money">Mobile Money</option>
+      <option value="Cash">Cash</option>
+    </select>
+
+    <input type="text" id="clientDate" name="date" placeholder="Select Date" required />
+    <input type="text" id="clientTime" name="time" placeholder="Select Time" required />
+
+    <!-- ✅ NEW: Staff name -->
+    <input type="text" id="clientStaff" placeholder="Staff (who attended)" required />
+
+    <button class="btn" onclick="addClient()">Save Client</button>
+    <button class="btn" onclick="closeAddClientModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Scripts -->
+<script src="app.js"></script>
+<script src="user-icon.js"></script>
+<script>
+  function openAddClientModal() {
+    document.getElementById("addClientModal").style.display = "flex";
+  }
+  function closeAddClientModal() {
+    document.getElementById("addClientModal").style.display = "none";
+  }
+</script>
+
+<script>
+  async function exportClientsPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const table = document.getElementById("clientsTable");
+    const rows = [];
+    const headers = [];
+
+    table.querySelectorAll("thead th").forEach(th => {
+      headers.push(th.innerText.trim());
+    });
+
+    table.querySelectorAll("tbody tr").forEach(row => {
+      const rowData = [];
+      row.querySelectorAll("td").forEach(td => {
+        rowData.push(td.innerText.trim());
+      });
+      rows.push(rowData);
+    });
+
+    doc.autoTable({ head: [headers], body: rows, styles: { fontSize: 8 }, theme: 'grid' });
+    doc.save("sista_sista_clients.pdf");
+  }
+</script>
+
+<!-- Full Image Popup -->
+<div id="imageModal" class="modal" onclick="this.style.display='none'">
+  <img id="fullImage" style="max-width:90%;max-height:90%;border-radius:12px;" />
+</div>
+<script>
+  function openFullImage(src) {
+    const modal = document.getElementById('imageModal');
+    const image = document.getElementById('fullImage');
+    image.src = src;
+    modal.style.display = 'flex';
+  }
+</script>
+
+<script>
+  const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+  if (loggedUser && loggedUser.role === "staff") {
+    document.body.classList.add("staff");
+  } else {
+    document.body.classList.add("admin");
+  }
+</script>
+<script>
+  function logout() {
+    // kill the session used by auth.js
+    sessionStorage.removeItem("sista_session");
+
+    // keep your existing clears
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+
+    // redirect (prevents back-nav into protected page)
+    window.location.replace("index.html");
+  }
+</script>
+
+
+<script>
+  // Date Picker
+  flatpickr("#clientDate", { dateFormat: "Y-m-d" });
+  // Time Picker (12-hour format with AM/PM)
+  flatpickr("#clientTime", { enableTime: true, noCalendar: true, dateFormat: "h:i K", time_24hr: false });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Reservations | Sista Sista Salon & Spa</title>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <!-- Flatpickr CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <style>
+    .user-profile{position:relative;display:inline-block;margin-top:8px;margin-right:50px;margin-left:30px}
+    .user-icon{cursor:pointer;color:#000}
+    .user-dropdown{display:none;position:absolute;background-color:#fff;min-width:50px;box-shadow:0 3px 6px rgba(0,0,0,.2);z-index:1;border-radius:8px;padding:10px}
+    body.dark .user-dropdown{background-color:#444;color:#fff}
+
+    .toast-message{visibility:hidden;min-width:200px;margin-left:-100px;background:#333;color:#fff;text-align:center;border-radius:8px;padding:14px;position:fixed;z-index:1000;left:50%;bottom:30px;font-size:16px;transition:opacity .5s ease,bottom .5s ease;opacity:0}
+    .toast-message.show{visibility:visible;opacity:1;bottom:60px}
+
+    .timeline-hours{display:flex;flex-direction:column;border-left:2px solid #ccc;padding-left:40px;margin-top:1rem}
+    .hour-block{position:relative;min-height:60px;border-bottom:1px solid #eee;padding-left:10px}
+    .time-label{position:absolute;left:-60px;top:10px;font-weight:700;color:#333}
+    .reservation-card{margin-top:8px;background:#f9f9f9;padding:6px 12px;border-radius:8px;display:inline-block;font-size:14px;color:#000;box-shadow:1px 1px 3px rgba(0,0,0,.05)}
+
+    /* Dark Mode */
+    body.dark-mode .timeline-hours{border-left-color:#555}
+    body.dark-mode .hour-block{border-bottom-color:#333}
+    body.dark-mode .time-label{color:#ccc}
+    body.dark-mode .reservation-card{background:#333;color:#fff;border:1px solid #555}
+
+    .reservation-card{background:#f9f9f9;border-radius:8px;padding:8px 12px;margin:4px 0;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:.9rem;line-height:1.4}
+    .hour-block:last-child{margin-bottom:80px}
+  </style>
+</head>
+<body>
+<script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) { window.location.href = "index.html"; }
+</script>
+
+<div class="dashboard-container">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
+      <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
+      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
+      <a href="reservations.html" class="active"><i class="fas fa-calendar-check"></i> Reservations</a>
+      <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
+      <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+      <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="theme-toggle-wrapper">
+        <span>Dark Theme</span>
+        <label class="theme-switch">
+          <input type="checkbox" id="toggleDark" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="user-profile">
+        <div class="user-icon" id="userIcon">
+          <i class="fas fa-user-circle fa-2x"></i>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <p id="loggedInUser">Loading...</p>
+          <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+      <div class="form-wrapper-column">
+        <h2 class="form-heading">Make a Reservation</h2>
+        <form id="reservationForm" class="form-card" autocomplete="off">
+          <input type="text" name="clientName" placeholder="Client Name" required />
+          <input type="tel" name="phone" placeholder="Phone Number" required />
+
+          <select name="service" required>
+            <option value="">Select Service</option>
+            <!-- Natural Hair -->
+            <optgroup label="Natural Hair">
+              <option>Shampoo & Conrow</option>
+              <option>Detangling Shampoo Blowout</option>
+              <option>Natural Ponytail Hair No Silk Press</option>
+              <option>Silk Press</option>
+              <option>Conditioning Treatment</option>
+              <option>Dandruff Treatment</option>
+              <option>Olapex Breakage Treatment</option>
+              <option>K18 Treatment</option>
+              <option>Wig sew in(closure)</option>
+              <option>Wig sew in(frontal)</option>
+              <option>Wig revamp(shampooing+curling)</option>
+              <option>Wig revamp(shampooing+straight)</option>
+              <option>Wig install ( frontal) sticking</option>
+              <option>Relax cut & style( pixie)</option>
+              <option>Shampoo & style (short hair)</option>
+              <option>Wig straightening or curling of weaves</option>
+            </optgroup>
+            <!-- Relaxed Hair -->
+            <optgroup label="Relaxed Hair">
+              <option>Shampoo+Blow Drying+Straightening</option>
+              <option>Shampoo+roller setting</option>
+              <option>Shampoo & Conrows</option>
+              <option>Relaxer+blowdrying+straightening(salon cream)one</option>
+              <option>Relaxer+Rollerset one & half(salon cream)</option>
+              <option>Relaxer+blowdrying+straightening one & half</option>
+              <option>Relaxer two (salon cream)</option>
+              <option>Relaxer+blowouts one & half(salon cream)</option>
+              <option>Relaxer+roller setting(personal cream)</option>
+              <option>Relaxer+blowdrying+straightening(personal cream)</option>
+              <option>Own relaxer without shampoo & conditioner</option>
+              <option>Extra</option>
+              <option>Trimming</option>
+              <option>Cutting</option>
+              <option>Other Con-rows</option>
+              <option>Conditioning treatment</option>
+              <option>Dandruff treatment</option>
+              <option>Olaplex Breakage treatment</option>
+              <option>K18 Treatment</option>
+              <option>Traditional sew in</option>
+              <option>Closure sew in</option>
+              <option>Tracks glue</option>
+              <option>Tracks sew in</option>
+              <option>Relaxed hair ponytail </option>
+              <option>Relaxer front & back</option>
+            </optgroup>
+            <!-- Nails -->
+            <optgroup label="Nails">
+              <option>Pedicure & No polish</option>
+              <option>Pedicure + Regular polish</option>
+              <option>Pedicure + Gel polish</option>
+              <option>Pedicure + Acrylic on toes</option>
+              <option>Pedicure + stick on</option>
+              <option>Pedicure stick on + French</option>
+              <option>Extra for French tips</option>
+              <option>Jelly Pedicure & Gel polish</option>
+              <option>Pedicure men</option>
+              <option>Manicure</option>
+              <option>Regular Polish</option>
+              <option>Basic Gel polish</option>
+              <option>BIAB / Structured Gel polish</option>
+              <option>Hard Gel + Gel polish</option>
+              <option>Acrylic Full nails</option>
+              <option>Acrylic nails on toes</option>
+              <option>Acrylic on toes refill</option>
+              <option>Acrylic refill (did full set with us)</option>
+              <option>Acrylic refill ( did not do full set with us)</option>
+              <option>Stick on/ Gel polish</option>
+              <option>Dissolving</option>
+              <option>Dissolving + Manicure</option>
+            </optgroup>
+            <!-- Waxing -->
+            <optgroup label="Waxing">
+              <option>Eyebrow Wax</option>
+              <option>Chin Wax</option>
+              <option>Chest Wax</option>
+              <option>Eyebrow shaping</option>
+              <option>Upper lip</option>
+              <option>Under arm</option>
+              <option>Stomach</option>
+              <option>Full arm</option>
+              <option>Half arm</option>
+              <option>Half Legs</option>
+              <option>Full leg</option>
+              <option>Bikini area</option>
+              <option>Full Face</option>
+              <option>Hollywood wax</option>
+            </optgroup>
+            <!-- Spa -->
+            <optgroup label="Spa">
+              <option>Hot stone massage 1hr</option>
+              <option>Hot stone massage 1hr 30mins</option>
+              <option>Deep tissue massage 30mins</option>
+              <option>Deep tissue massage 1hr</option>
+              <option>Deep tissue massage 1hr 30mins</option>
+              <option>Swedish massage 30mins</option>
+              <option>Swedish massage 1hr</option>
+              <option>Swedish massage 1hr 30mins</option>
+              <option>Body Scrub</option>
+              <option>Steam Therapy</option>
+              <option>Back Treatment</option>
+              <option>Facials Deep cleanse</option>
+              <option>Facials Deep cleanse (upgrade)</option>
+              <option>Facials Rejuvenation</option>
+              <option>Facials Anti acne</option>
+              <option>Facials Dermplane (Extra)</option>
+            </optgroup>
+          </select>
+
+          <input type="text" id="reservationDate" name="date" placeholder="Select Date" required />
+          <input type="text" id="reservationTime" name="time" placeholder="Select Time" required />
+          <button type="submit" class="btn">Save Reservation</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="timeline-wrapper" style="margin: 2rem 0;">
+      <h3>Upcoming Reservations (Timeline View)</h3>
+      <div class="timeline-scroll">
+        <div id="timelineHours" class="timeline-hours"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="app-footer">
+      &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+      Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+    </div>
+  </main>
+</div>
+
+<!-- Toast Message -->
+<div id="toast" class="toast-message">Reservation saved!</div>
+
+<script src="app.js"></script>
+<script>
+  // ---- Small helpers ----
+  function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000)}
+  const TAB_ID = Math.random().toString(36).slice(2); // to ignore our own broadcast
+
+  // AM/PM -> 24h "HH:mm"
+  function to24h(t=""){
+    t=t.trim();
+    if(/am|pm/i.test(t)){
+      const m=t.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if(!m) return "00:00";
+      let hh=parseInt(m[1],10); const mm=m[2]; const pm=m[3].toUpperCase()==="PM";
+      if(hh===12 && !pm) hh=0;
+      if(hh<12 && pm) hh+=12;
+      return String(hh).padStart(2,"0")+":"+mm;
+    }
+    return t; // already 24h
+  }
+  function localTimestamp(dateStr="", timeStr="00:00"){
+    const [y,m,d]=dateStr.split("-").map(Number);
+    const [H,M]=to24h(timeStr).split(":").map(Number);
+    if(!(y&&m&&d)) return 0;
+    return new Date(y,m-1,d,H||0,M||0,0,0).getTime();
+  }
+
+  // Submit handler
+  document.getElementById("reservationForm").addEventListener("submit", function(e){
+    e.preventDefault();
+    const form=e.target;
+
+    const date=form.date.value;
+    const time=form.time.value;        // AM/PM as seen by user
+    const time24=to24h(time);          // normalized
+    const timestamp=localTimestamp(date,time);
+
+    const reservation={
+      clientName: form.clientName.value.trim(),
+      phone: form.phone.value.trim(),
+      service: form.service.value,
+      date, time, time24, timestamp,
+      createdAt: new Date().toISOString()
+    };
+
+    const req=indexedDB.open("SalonDB",1);
+    req.onsuccess=function(ev){
+      const db=ev.target.result;
+      const tx=db.transaction("reservations","readwrite");
+      tx.objectStore("reservations").add(reservation);
+      tx.oncomplete=()=>{
+        showToast("Reservation saved!");
+        form.reset();
+        // refresh this tab immediately
+        loadTimelineHoursWithReservations();
+        // notify other tabs only
+        resChannel.postMessage({type:"update", from:TAB_ID});
+      };
+      tx.onerror=()=>showToast("Error saving reservation.");
+    };
+  });
+
+  // Dark Mode toggle
+  const toggleDark=document.getElementById("toggleDark");
+  toggleDark.addEventListener("change",function(){document.body.classList.toggle("dark-mode",this.checked);});
+
+  function logout() {
+    // kill the session used by auth.js
+    sessionStorage.removeItem("sista_session");
+
+    // keep your existing clears
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+
+    // redirect (prevents back-nav into protected page)
+    window.location.replace("index.html");
+  }
+</script>
+
+<script src="user-icon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+  // Date: ISO
+  flatpickr("#reservationDate",{dateFormat:"Y-m-d",minDate:"today"});
+  // Time: AM/PM visible
+  flatpickr("#reservationTime",{enableTime:true,noCalendar:true,dateFormat:"h:i K",time_24hr:false});
+</script>
+
+<script>
+  // ------- Timeline (idempotent render) -------
+  const resChannel = new BroadcastChannel("reservations");
+  resChannel.onmessage = (event)=>{
+    const msg=event.data;
+    if(msg?.type==="update" && msg.from!==TAB_ID){
+      loadTimelineHoursWithReservations();
+    }
+  };
+
+  let TL_RENDER_TOKEN = 0;
+
+  function formatHour(h){
+    if(h===24||h===0) return "12 AM";
+    if(h===12) return "12 PM";
+    const ampm=h>12?"PM":"AM";
+    const h12=h>12? h-12 : h;
+    return `${h12} ${ampm}`;
+  }
+
+  function getAllReservations(){
+    return new Promise((resolve)=>{
+      const req=indexedDB.open("SalonDB",1);
+      req.onerror=()=>resolve([]);
+      req.onsuccess=(ev)=>{
+        const db=ev.target.result;
+        const tx=db.transaction("reservations","readonly");
+        const store=tx.objectStore("reservations");
+        const ga=store.getAll();
+        ga.onsuccess=()=>resolve(ga.result||[]);
+        ga.onerror=()=>resolve([]);
+      };
+    });
+  }
+
+  async function loadTimelineHoursWithReservations(){
+    const myToken=++TL_RENDER_TOKEN;
+
+    // fetch first – avoids flicker and lets us abort outdated renders
+    const reservations=await getAllReservations();
+    if(myToken!==TL_RENDER_TOKEN) return;
+
+    const timeline=document.getElementById("timelineHours");
+    if(!timeline) return;
+
+    // fresh grid
+    timeline.innerHTML="";
+    for(let hour=8; hour<=24; hour++){
+      const block=document.createElement("div");
+      block.className="hour-block";
+      block.setAttribute("data-hour",hour);
+      const label=document.createElement("strong");
+      label.className="time-label";
+      label.textContent=formatHour(hour);
+      block.appendChild(label);
+      timeline.appendChild(block);
+    }
+
+    // paint cards
+    reservations.forEach(res=>{
+      const h24 = res.time24 || to24h(res.time || "00:00");
+      const hour = parseInt(h24.split(":")[0],10);
+      const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
+      if(!block) return;
+      const card=document.createElement("div");
+      card.className="reservation-card";
+      card.innerHTML=`
+        <strong>${res.clientName || "Unnamed Client"}</strong><br>
+        <i class="fas fa-phone"></i> ${res.phone || ""}<br>
+        <i class="fas fa-calendar"></i> ${res.date || ""} at ${(res.time || h24)}<br>
+        <i class="fas fa-scissors"></i> ${res.service || ""}
+      `;
+      block.appendChild(card);
+    });
+  }
+
+  // initial render
+  loadTimelineHoursWithReservations();
+</script>
+
+</body>
+</html>
