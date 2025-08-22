@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v6';
+const CACHE_NAME = 'sista-sista-cache-v7';
 
 const CORE_ASSETS = [
   './',
@@ -12,6 +12,7 @@ const CORE_ASSETS = [
   './calendar.html',
   './reviews.html',
   './revenue.html',
+  './notepad.html',          // ✅ new
   './offline.html',
 
   './style.css',
@@ -34,7 +35,7 @@ const CORE_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // tolerate a missing asset rather than failing the whole install
+    // Tolerate a missing asset rather than failing the whole install
     await Promise.allSettled(
       CORE_ASSETS.map(async (url) => {
         try {
@@ -60,7 +61,7 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // HTML navigations: network-first, fallback to offline
+  // HTML navigations: network-first, then try cached request, then offline
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
@@ -70,7 +71,10 @@ self.addEventListener('fetch', (event) => {
         caches.open(CACHE_NAME).then(c => c.put(request, copy));
         return res;
       } catch {
-        return (await caches.match('./index.html')) || (await caches.match('./offline.html'));
+        return (
+          (await caches.match(request)) ||
+          (await caches.match('./offline.html'))
+        );
       }
     })());
     return;
