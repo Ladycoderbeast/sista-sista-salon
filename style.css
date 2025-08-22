@@ -836,3 +836,10 @@ select {
   background-size: 16px;
 }
 
+.share-one i {
+  color: #000;   /* black */
+}
+
+body.dark-mode .share-one i {
+  color: #fff;   /* switch to white in dark mode */
+}

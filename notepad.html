@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Notepad | Sista Sista Salon & Spa</title>
+
+  <!-- Auth + base styles to match other pages -->
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+  <style>
+    .pad-wrap{max-width:900px;margin:1rem auto;padding:1rem}
+    .pad-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:flex-end;margin:.5rem 0 1rem}
+    .pad-toolbar .btn{background:#000;color:#fff;border:none;padding:.55rem .9rem;border-radius:.5rem;cursor:pointer}
+    .pad-toolbar .btn:disabled{opacity:.6;cursor:not-allowed}
+    .pad-meta{font-size:.85rem;color:#666;margin:.25rem 0 .75rem}
+    .pad-area{width:100%;min-height:60vh;resize:vertical;padding:1rem;border:1px solid #ddd;border-radius:.75rem;font-size:1rem;line-height:1.5}
+
+    .user-profile {
+      position: relative;
+      display: inline-block;
+      margin-top: 8px;
+      margin-right: 50px;
+      margin-left: 30px;
+    }
+    .user-icon { cursor: pointer; color: #000; }
+    .user-dropdown {
+      display: none; position: absolute; background-color: white; min-width: 50px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; padding: 10px;
+    }
+    body.dark .user-dropdown { background-color: #444; color: #fff; }
+
+    /* Dark theme compatibility (local) */
+    body.dark-mode .pad-area{background:#1f1f1f;color:#fff;border-color:#444}
+    body.dark-mode .pad-meta{color:#aaa}
+    body.dark-mode .pad-toolbar .btn{background:#111;color:#fff}
+
+    /* ---------- Toasts ---------- */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      background: #111;
+      color: #fff;
+      padding: .7rem 1rem;
+      border-radius: .5rem;
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease, transform .2s ease;
+      z-index: 1000;
+      font-size: .95rem;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+      pointer-events: auto;
+    }
+    body.dark-mode .toast { background:#000; color:#fff; }
+
+    /* Confirm bar variant */
+    .toast.confirm {
+      display:flex;
+      gap:.75rem;
+      align-items:center;
+    }
+    .toast .actions{
+      display:flex;
+      gap:.5rem;
+      margin-left:.5rem;
+    }
+    .toast .t-btn{
+      border:none;
+      border-radius:.45rem;
+      padding:.45rem .7rem;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .toast .t-btn.cancel{background:#444;color:#fff}
+    .toast .t-btn.ok{background:#e02424;color:#fff}
+    body.dark-mode .toast .t-btn.cancel{background:#333}
+    body.dark-mode .toast .t-btn.ok{background:#aa2626}
+  </style>
+</head>
+<body>
+<script>
+  const user = JSON.parse(localStorage.getItem("loggedUser"));
+  if (!user || !user.role) { window.location.href = "index.html"; }
+</script>
+
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
+      <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
+      <a href="notepad.html" class="active"><i class="fas fa-note-sticky"></i> Notepad</a>
+      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
+      <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
+      <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
+      <a href="revenue.html"><i class="fa fa-table"></i> Revenue Summary</a>
+      <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="theme-toggle-wrapper">
+        <span>Dark Theme</span>
+        <label class="theme-switch">
+          <input type="checkbox" id="toggleDark" />
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="user-profile">
+        <div class="user-icon" id="userIcon">
+          <i class="fas fa-user-circle fa-2x"></i>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <p id="loggedInUser">Loading...</p>
+          <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+      <div class="pad-wrap">
+        <h2 class="form-heading">Client Notepad</h2>
+        <div class="pad-meta">
+          <span id="savedState">Autosave ready</span> •
+          <span>Use this scratch pad to jot services while the client decides. Not linked to records.</span>
+        </div>
+
+        <textarea id="notepad" class="pad-area" placeholder="Type anything here… e.g.
+Silk Press
+K18 Treatment
+Pedicure + Gel polish
+Detangling Shampoo Blowout"></textarea>
+
+        <div class="pad-toolbar">
+          <button class="btn" id="btnCopy"     title="Copy to clipboard"><i class="fas fa-copy"></i> Copy</button>
+          <button class="btn" id="btnPrint"    title="Print this note"><i class="fas fa-print"></i> Print</button>
+          <button class="btn" id="btnDownload" title="Download as .txt"><i class="fas fa-file-arrow-down"></i> Download</button>
+          <button class="btn" id="btnClear"    title="Clear the note"><i class="fas fa-eraser"></i> Clear</button>
+        </div>
+
+        <p class="hint">Notes are stored only in this browser (local storage). Clearing will erase the stored note.</p>
+      </div>
+    </div>
+
+    <div class="app-footer">
+      &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+      Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+    </div>
+  </main>
+</div>
+
+<!-- Toast root (reused for both small toasts & confirm bar) -->
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script src="user-icon.js"></script>
+<script>
+  /* ---------- Dark Mode toggle (set BOTH classes for full-page dark) ---------- */
+  const toggleDark = document.getElementById("toggleDark");
+  const savedTheme = localStorage.getItem("theme");
+
+  const shouldBeDark = savedTheme === "dark";
+  if (shouldBeDark) {
+    document.body.classList.add("dark", "dark-mode");   // << add both
+    if (toggleDark) toggleDark.checked = true;
+  }
+
+  toggleDark?.addEventListener("change", function () {
+    const on = this.checked;
+    document.body.classList.toggle("dark", on);         // << keep global dark styles
+    document.body.classList.toggle("dark-mode", on);    // << keep local dark styles
+    localStorage.setItem("theme", on ? "dark" : "light");
+  });
+
+  function logout() {
+    sessionStorage.removeItem("sista_session");
+    localStorage.removeItem("role");
+    localStorage.removeItem("username");
+    localStorage.removeItem("loggedUser");
+    window.location.replace("index.html");
+  }
+
+  /* ---------- Toast utilities ---------- */
+  const toastEl = document.getElementById("toast");
+  let toastTimer;
+
+  function showToast(message, ms=1400) {
+    toastEl.className = "toast";
+    toastEl.innerHTML = message;
+    clearTimeout(toastTimer);
+    requestAnimationFrame(() => toastEl.classList.add("show"));
+    toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
+  }
+
+  function confirmToast(message, {okText="Clear", cancelText="Cancel"}={}) {
+    return new Promise(resolve => {
+      clearTimeout(toastTimer);
+      toastEl.className = "toast confirm";
+      toastEl.innerHTML = `
+        <span>${message}</span>
+        <div class="actions">
+          <button class="t-btn cancel">${cancelText}</button>
+          <button class="t-btn ok">${okText}</button>
+        </div>
+      `;
+      toastEl.classList.add("show");
+
+      const onCancel = () => { cleanup(); resolve(false); };
+      const onOk     = () => { cleanup(); resolve(true);  };
+
+      function cleanup(){
+        toastEl.classList.remove("show");
+        btnCancel.removeEventListener("click", onCancel);
+        btnOk.removeEventListener("click", onOk);
+      }
+      const btnCancel = toastEl.querySelector(".t-btn.cancel");
+      const btnOk     = toastEl.querySelector(".t-btn.ok");
+      btnCancel.addEventListener("click", onCancel);
+      btnOk.addEventListener("click", onOk);
+    });
+  }
+
+  /* ---------- Notepad logic ---------- */
+  const KEY_TEXT = "notepad:text";
+  const KEY_SAVED_AT = "notepad:savedAt";
+  const elArea = document.getElementById("notepad");
+  const elState = document.getElementById("savedState");
+
+  // Load previous note
+  elArea.value = localStorage.getItem(KEY_TEXT) || "";
+  const prevStamp = localStorage.getItem(KEY_SAVED_AT);
+  if (prevStamp) elState.textContent = "Saved " + prevStamp;
+
+  // Autosave (debounced)
+  let tmr;
+  function stamp(){
+    const s = new Date().toLocaleString();
+    elState.textContent = "Saved " + s;
+    localStorage.setItem(KEY_SAVED_AT, s);
+  }
+  elArea.addEventListener("input", () => {
+    localStorage.setItem(KEY_TEXT, elArea.value);
+    elState.textContent = "Saving…";
+    clearTimeout(tmr);
+    tmr = setTimeout(stamp, 400);
+  });
+
+  // Copy
+  document.getElementById("btnCopy").addEventListener("click", async () => {
+    await navigator.clipboard.writeText(elArea.value || "");
+    showToast("Copied ✓");
+  });
+
+  // Print
+  document.getElementById("btnPrint").addEventListener("click", () => {
+    const w = window.open("", "_blank");
+    const safe = (elArea.value || "").replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    w.document.write(`<pre style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; white-space:pre-wrap; line-height:1.5; font-size:14px;">${safe}</pre>`);
+    w.document.close(); w.focus(); w.print();
+  });
+
+  // Download .txt
+  document.getElementById("btnDownload").addEventListener("click", () => {
+    const blob = new Blob([elArea.value || ""], {type: "text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "client-notes.txt"; a.click();
+    URL.revokeObjectURL(url);
+    showToast("Downloaded ✓");
+  });
+
+  // Clear via confirm toast
+  document.getElementById("btnClear").addEventListener("click", async () => {
+    const yes = await confirmToast("Clear this note?");
+    if (!yes) return;
+    elArea.value = "";
+    localStorage.setItem(KEY_TEXT, "");
+    stamp();
+    showToast("Note cleared ✓");
+  });
+</script>
+</body>
+</html>

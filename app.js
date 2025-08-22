@@ -220,11 +220,11 @@ function loadClients() {
     if (cursor) {
       const client = cursor.value;
       const matchesSearch =
-  !searchValue ||                                  // allow empty query
-  client.name.toLowerCase().includes(searchValue) ||
-  client.phone.toLowerCase().includes(searchValue) ||
-  client.service.toLowerCase().includes(searchValue) ||
-  (client.staff || "").toLowerCase().includes(searchValue);  // <- add staff
+        !searchValue ||
+        client.name.toLowerCase().includes(searchValue) ||
+        client.phone.toLowerCase().includes(searchValue) ||
+        client.service.toLowerCase().includes(searchValue) ||
+        (client.staff || "").toLowerCase().includes(searchValue);
       const matchesService = selectedService === "" || client.service === selectedService;
 
       if (matchesSearch && matchesService) {
@@ -279,7 +279,7 @@ function updateDashboardStatsFromClients() {
   const store = tx.objectStore("clients");
 
   const now = new Date();
-  const todayStr = localDateStr(now); // local today
+  const todayStr = localDateStr(now);
   const month = now.getMonth();
   const year = now.getFullYear();
 
@@ -298,32 +298,34 @@ function updateDashboardStatsFromClients() {
       const key = `${c.name}_${c.phone}`;
       uniqueClients.add(key);
 
-      // ✅ count distinct services
       if (c.service) services.add(c.service);
 
-      // today
       if (c.date === todayStr) {
         todayVisits++;
         if (c.amount) todaySales += parseFloat(c.amount);
       }
 
-      // this month revenue
       if (!isNaN(visitDate) && visitDate.getMonth() === month && visitDate.getFullYear() === year && c.amount) {
         revenue += parseFloat(c.amount);
       }
 
-      // weekly chart bucket
       if (!isNaN(visitDate)) {
         weekly[visitDate.getDay()]++;
       }
 
       cursor.continue();
     } else {
-      document.getElementById("totalClients").textContent = uniqueClients.size;
-      document.getElementById("todaysVisits").textContent = todayVisits;
-      document.getElementById("monthlyRevenue").textContent = `GHS ${revenue.toFixed(2)}`;
-      document.getElementById("dailyRevenue").textContent = `GHS ${todaySales.toFixed(2)}`;
-      document.getElementById("availableServices").textContent = services.size; // ✅ now correct
+      const elTotalClients      = document.getElementById("totalClients");
+      const elTodaysVisits      = document.getElementById("todaysVisits");
+      const elMonthlyRevenue    = document.getElementById("monthlyRevenue");
+      const elDailyRevenue      = document.getElementById("dailyRevenue");
+      const elAvailableServices = document.getElementById("availableServices");
+
+      if (elTotalClients)      elTotalClients.textContent      = uniqueClients.size;
+      if (elTodaysVisits)      elTodaysVisits.textContent      = todayVisits;
+      if (elMonthlyRevenue)    elMonthlyRevenue.textContent    = `GHS ${revenue.toFixed(2)}`;
+      if (elDailyRevenue)      elDailyRevenue.textContent      = `GHS ${todaySales.toFixed(2)}`;
+      if (elAvailableServices) elAvailableServices.textContent = services.size;
 
       if (typeof Chart !== "undefined") {
         const ctx = document.getElementById("visitTrendChart")?.getContext("2d");
@@ -368,11 +370,18 @@ function updateClientSummaryCards(clients) {
     if (client.gender === "Female") femaleCount++;
     if (client.gender === "Male") maleCount++;
   });
-  document.getElementById("totalClientsCard").textContent = clients.length;
-  document.getElementById("newClients").textContent = newCount;
-  document.getElementById("returningClients").textContent = returningCount;
-  document.getElementById("femaleClients").textContent = femaleCount;
-  document.getElementById("maleClients").textContent = maleCount;
+
+  const elTotal   = document.getElementById("totalClientsCard");
+  const elNew     = document.getElementById("newClients");
+  const elReturn  = document.getElementById("returningClients");
+  const elFemale  = document.getElementById("femaleClients");
+  const elMale    = document.getElementById("maleClients");
+
+  if (elTotal)  elTotal.textContent  = clients.length;
+  if (elNew)    elNew.textContent    = newCount;
+  if (elReturn) elReturn.textContent = returningCount;
+  if (elFemale) elFemale.textContent = femaleCount;
+  if (elMale)   elMale.textContent   = maleCount;
 }
 
 /* =========================
@@ -479,13 +488,11 @@ function checkUpcomingReservations() {
     if (cursor) {
       const r = cursor.value;
 
-      // Fallback values
       const name = r.clientName || r.ClientName || "Unnamed Client";
       const time = r.time || "--:--";
       const date = r.date || "";
       const service = r.service || "No service";
 
-      // Reliable local timestamp
       const ts = Number.isFinite(r.timestamp)
         ? r.timestamp
         : localTimestamp(date, r.time || r.time24 || time);
@@ -500,14 +507,16 @@ function checkUpcomingReservations() {
       cursor.continue();
     } else {
       const badge = document.getElementById("notificationBadge");
-      const list = document.getElementById("notificationList");
+      const list  = document.getElementById("notificationList");
+
+      if (!badge || !list) return;
 
       if (alertList.length > 0) {
         badge.style.display = "inline-block";
         list.innerHTML = alertList.map(item => `<li>${item}</li>`).join("");
       } else {
         badge.style.display = "none";
-        list.innerHTML = "<li>No upcoming reservations</li>";
+        list.innerHTML = "<li>No upcoming bookings</li>";
       }
     }
   };
@@ -530,6 +539,11 @@ document.addEventListener("DOMContentLoaded", () => {
 let LAST_RESERVATIONS = [];
 let TL_RENDER_TOKEN = 0;
 
+// Utility to decode any '&amp;' that may have been stored
+function decodeAmp(s = "") {
+  return String(s).replace(/&amp;/g, "&");
+}
+
 // Read all reservations from IndexedDB
 async function getAllReservations(){
   return new Promise((resolve)=>{
@@ -546,18 +560,36 @@ async function getAllReservations(){
   });
 }
 
-// Build and open a mailto: link
-function mailtoOpen(subject, body, to=""){
+// Build and open a mailto: link (robust + logs)
+function mailtoOpen(subject, body, to = "") {
   const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-  window.location.href = href;
+
+  try {
+    const a = document.createElement("a");
+    a.href = href;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) {
+    console.warn("[share] anchor click failed:", e);
+  }
+
+  try {
+    setTimeout(() => { window.location.href = href; }, 50);
+  } catch (e) {
+    console.warn("[share] location fallback failed:", e);
+  }
+
+  console.log("[share] attempted to open:", href, "If nothing opens, set a default email app on your OS.");
 }
 
-// Human-readable line for a reservation
+// Human-readable line for a reservation (for daily share)
 function formatReservationLine(r, i){
   const t = r.time || r.time24 || "";
-  const name = r.clientName || "Unnamed Client";
-  const phone = r.phone || "";
-  const svc = r.service || "";
+  const name = decodeAmp(r.clientName || "Unnamed Client");
+  const phone = decodeAmp(r.phone || "");
+  const svc = decodeAmp(r.service || "");
   return `${i}. ${r.date} ${t} — ${name} (${phone}) — ${svc}`;
 }
 
@@ -579,17 +611,17 @@ async function shareReservationsForDate(dateStr){
   mailtoOpen(subject, body);
 }
 
-// Idempotent timeline render (8AM–12AM)
+// Idempotent timeline render (8AM–12AM) with per-card share icon
 async function loadTimelineHoursWithReservations(){
   const myToken = ++TL_RENDER_TOKEN;
 
   const reservations = await getAllReservations();
-  if (myToken !== TL_RENDER_TOKEN) return; // cancel stale renders
+  if (myToken !== TL_RENDER_TOKEN) return;
 
   LAST_RESERVATIONS = reservations;
 
   const timeline = document.getElementById("timelineHours");
-  if (!timeline) return; // not on reservations page
+  if (!timeline) return;
 
   // fresh grid
   timeline.innerHTML = "";
@@ -619,11 +651,15 @@ async function loadTimelineHoursWithReservations(){
     const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
     if(!block) return;
 
-    const subj = `Reservation — ${res.clientName || "Client"} on ${res.date} at ${res.time || h24}`;
+    const clientName = decodeAmp(res.clientName || "Unnamed Client");
+    const phone      = decodeAmp(res.phone || "");
+    const svc        = decodeAmp(res.service || "");
+
+    const subj = `Reservation — ${clientName} on ${res.date} at ${res.time || h24}`;
     const body =
-      `Client: ${res.clientName || ""}\n` +
-      `Phone: ${res.phone || ""}\n` +
-      `Service: ${res.service || ""}\n` +
+      `Client: ${clientName}\n` +
+      `Phone: ${phone}\n` +
+      `Service: ${svc}\n` +
       `Date: ${res.date || ""}\n` +
       `Time: ${res.time || h24}\n\n` +
       `— Sent from Sista Sista Salon & Spa system`;
@@ -632,47 +668,54 @@ async function loadTimelineHoursWithReservations(){
     const card = document.createElement("div");
     card.className = "reservation-card";
     card.innerHTML = `
-      <strong>${res.clientName || "Unnamed Client"}</strong>
+      <strong>${clientName}</strong>
       <a href="${mailto}" class="share-one" title="Share via email" style="margin-left:8px;">
         <i class="fas fa-envelope"></i>
       </a><br>
-      <i class="fas fa-phone"></i> ${res.phone || ""}<br>
+      <i class="fas fa-phone"></i> ${phone}<br>
       <i class="fas fa-calendar"></i> ${res.date || ""} at ${(res.time || h24)}<br>
-      <i class="fas fa-scissors"></i> ${res.service || ""}
+      <i class="fas fa-scissors"></i> ${svc}
     `;
     block.appendChild(card);
   });
 }
 
-// Broadcast updates between tabs and wire global Share button
-document.addEventListener("DOMContentLoaded", () => {
-  // Only activate on the reservations page (elements must exist)
+// Broadcast updates & Share button wiring
+function wireReservationsPage() {
   const timelineEl = document.getElementById("timelineHours");
-  if (timelineEl) {
-    // initial render
-    loadTimelineHoursWithReservations();
+  if (!timelineEl) return;
 
-    // cross-tab refresh
-    if (typeof BroadcastChannel !== "undefined") {
-      const resChannel = new BroadcastChannel("reservations");
-      resChannel.onmessage = (event)=>{
-        const msg = event.data;
-        if (msg?.type === "update" && msg.from !== undefined) {
-          loadTimelineHoursWithReservations();
-        }
-      };
-    }
+  // (Re)render now
+  loadTimelineHoursWithReservations();
 
-    // Global Share button
-    const shareBtn = document.getElementById("shareTodayBtn");
-    if (shareBtn) {
-      shareBtn.addEventListener("click", () => {
-        const chosen =
-          document.getElementById("shareDate")?.value ||        // optional date picker
-          document.getElementById("reservationDate")?.value ||   // form date if present
-          localDateStr();                                        // fallback: today
-        shareReservationsForDate(chosen);
-      });
-    }
+  // cross-tab refresh
+  if (typeof BroadcastChannel !== "undefined") {
+    const resChannel = new BroadcastChannel("reservations");
+    resChannel.onmessage = (event)=>{
+      const msg = event.data;
+      if (msg?.type === "update" && msg.from !== undefined) {
+        loadTimelineHoursWithReservations();
+      }
+    };
   }
+
+  // Global Share button (share all for the chosen date/today)
+  const shareBtn = document.getElementById("shareTodayBtn");
+  if (shareBtn) {
+    shareBtn.addEventListener("click", () => {
+      const chosen =
+        document.getElementById("shareDate")?.value ||
+        document.getElementById("reservationDate")?.value ||
+        localDateStr();
+      console.log("[share] button clicked; chosen date =", chosen);
+      shareReservationsForDate(chosen);
+    });
+  }
+}
+
+// Run once DOM is ready, and once the whole page is loaded (to override inline script render)
+document.addEventListener("DOMContentLoaded", wireReservationsPage);
+window.addEventListener("load", () => {
+  // Final pass to ensure per-card share icons appear even if another script rendered earlier
+  wireReservationsPage();
 });

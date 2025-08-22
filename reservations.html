@@ -33,6 +33,8 @@
 
     .reservation-card{background:#f9f9f9;border-radius:8px;padding:8px 12px;margin:4px 0;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:.9rem;line-height:1.4}
     .hour-block:last-child{margin-bottom:80px}
+
+    
   </style>
 </head>
 <body>
@@ -50,8 +52,9 @@
       <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
       <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
       <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
+      <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
       <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
-      <a href="reservations.html" class="active"><i class="fas fa-calendar-check"></i> Reservations</a>
+      <a href="reservations.html" class="active"><i class="fas fa-calendar-check"></i> Bookings</a>
       <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
       <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
       <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
@@ -81,7 +84,7 @@
 
     <div class="dashboard-body">
       <div class="form-wrapper-column">
-        <h2 class="form-heading">Make a Reservation</h2>
+        <h2 class="form-heading">Make a Booking</h2>
         <form id="reservationForm" class="form-card" autocomplete="off">
           <input type="text" name="clientName" placeholder="Client Name" required />
           <input type="tel" name="phone" placeholder="Phone Number" required />
@@ -200,19 +203,19 @@
 
           <input type="text" id="reservationDate" name="date" placeholder="Select Date" required />
           <input type="text" id="reservationTime" name="time" placeholder="Select Time" required />
-          <button type="submit" class="btn">Save Reservation</button>
+          <button type="submit" class="btn">Save Booking</button>
         </form>
       </div>
     </div>
 
     <div class="timeline-wrapper" style="margin: 2rem 0;">
-  <h3>Upcoming Reservations (Timeline View)</h3>
+  <h3>Upcoming Bookings (Timeline View)</h3>
 
   <!-- Share toolbar -->
   <div class="share-toolbar" style="display:flex; justify-content:flex-end; gap:10px; margin:.5rem 0 1rem;">
-    <button id="shareTodayBtn" class="btn" title="Share via email">
-      <i class="fas fa-share"></i> Share via Email
-    </button>
+    <button id="shareTodayBtn" type="button" class="btn" title="Share via email">
+  <i class="fas fa-share"></i> Share via Email
+</button>
   </div>
 
   <div class="timeline-scroll">
@@ -378,27 +381,92 @@
       timeline.appendChild(block);
     }
 
-    // paint cards
-    reservations.forEach(res=>{
-      const h24 = res.time24 || to24h(res.time || "00:00");
-      const hour = parseInt(h24.split(":")[0],10);
-      const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
-      if(!block) return;
-      const card=document.createElement("div");
-      card.className="reservation-card";
-      card.innerHTML=`
-        <strong>${res.clientName || "Unnamed Client"}</strong><br>
-        <i class="fas fa-phone"></i> ${res.phone || ""}<br>
-        <i class="fas fa-calendar"></i> ${res.date || ""} at ${(res.time || h24)}<br>
-        <i class="fas fa-scissors"></i> ${res.service || ""}
-      `;
-      block.appendChild(card);
-    });
+    // paint cards (with per-card share icon)
+reservations.forEach(res => {
+  const h24  = res.time24 || to24h(res.time || "00:00");
+  const hour = parseInt(h24.split(":")[0], 10);
+  const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
+  if (!block) return;
+
+  const subj = `Reservation — ${res.clientName || "Client"} on ${res.date} at ${res.time || h24}`;
+  const body =
+    `Client: ${res.clientName || ""}\n` +
+    `Phone: ${res.phone || ""}\n` +
+    `Service: ${res.service || ""}\n` +
+    `Date: ${res.date || ""}\n` +
+    `Time: ${res.time || h24}\n\n` +
+    `— Sent from Sista Sista Salon & Spa system`;
+  const mailto = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+
+  const card = document.createElement("div");
+  card.className = "reservation-card";
+  card.innerHTML = `
+    <strong>${res.clientName || "Unnamed Client"}</strong>
+    <a href="${mailto}" class="share-one" title="Share via email" style="margin-left:8px;">
+      <i class="fas fa-envelope" style="color:#000"></i>
+    </a><br>
+    <i class="fas fa-phone"></i> ${res.phone || ""}<br>
+    <i class="fas fa-calendar"></i> ${res.date || ""} at ${res.time || h24}<br>
+    <i class="fas fa-scissors"></i> ${res.service || ""}
+  `;
+  block.appendChild(card);
+});
+
   }
 
   // initial render
   loadTimelineHoursWithReservations();
 </script>
+
+<script>
+  (function () {
+    const btn = document.getElementById("shareTodayBtn");
+    if (!btn) return;
+
+    function buildBodyFromDOM() {
+      // Read what’s already on the page
+      const cards = Array.from(document.querySelectorAll("#timelineHours .reservation-card"));
+      if (!cards.length) return "";
+
+      const lines = cards.map((card, i) => {
+        const name = card.querySelector("strong")?.textContent?.trim() || "Unnamed Client";
+        const phone = (card.innerHTML.match(/fa-phone"><\/i>\s*([^<]+)/)?.[1] || "").trim();
+        const dateTime = (card.innerHTML.match(/fa-calendar"><\/i>\s*([^<]+)/)?.[1] || "").trim();
+        const service = (card.innerHTML.match(/fa-scissors"><\/i>\s*([^<]+)/)?.[1] || "").trim();
+        return `${i + 1}. ${dateTime} — ${name} (${phone}) — ${service}`;
+      });
+
+      return lines.join("\n");
+    }
+
+    btn.addEventListener("click", function () {
+      // Prefer the date the user picked in the form, else today
+      const dateStr =
+        document.getElementById("reservationDate")?.value ||
+        new Date().toISOString().slice(0, 10);
+
+      const bodyLines = buildBodyFromDOM();
+      if (!bodyLines) {
+        // Fall back to the DB-driven toast if nothing is on screen
+        if (typeof showToast === "function") showToast("No reservations to share on the screen.");
+        return;
+      }
+
+      const subject = `Reservations for ${dateStr} — Sista Sista Salon & Spa`;
+      const body = `Hello,\n\nHere are the reservations for ${dateStr}:\n\n${bodyLines}\n\n— Sent from Sista Sista Salon & Spa system`;
+
+      // Synchronous mailto (best chance of not being blocked)
+      const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      const a = document.createElement("a");
+      a.href = href;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  })();
+</script>
+
 
 </body>
 </html>
