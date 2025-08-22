@@ -86,6 +86,7 @@ function parseLocalDate(dateStr) {
   return new Date(y, m - 1, d, 0, 0, 0, 0);
 }
 
+
 /* =========================
    Trend (local days)
    ========================= */
@@ -519,4 +520,159 @@ document.addEventListener("DOMContentLoaded", () => {
   bell?.addEventListener("click", () => {
     panel.style.display = panel.style.display === "block" ? "none" : "block";
   });
+});
+
+/* =========================
+   Reservations Timeline + Share (global & per-card)
+   ========================= */
+
+// Keep last list for sharing
+let LAST_RESERVATIONS = [];
+let TL_RENDER_TOKEN = 0;
+
+// Read all reservations from IndexedDB
+async function getAllReservations(){
+  return new Promise((resolve)=>{
+    const req = indexedDB.open("SalonDB", 1);
+    req.onerror = () => resolve([]);
+    req.onsuccess = (ev) => {
+      const _db = ev.target.result;
+      const tx = _db.transaction("reservations", "readonly");
+      const store = tx.objectStore("reservations");
+      const ga = store.getAll();
+      ga.onsuccess = () => resolve(ga.result || []);
+      ga.onerror   = () => resolve([]);
+    };
+  });
+}
+
+// Build and open a mailto: link
+function mailtoOpen(subject, body, to=""){
+  const href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.location.href = href;
+}
+
+// Human-readable line for a reservation
+function formatReservationLine(r, i){
+  const t = r.time || r.time24 || "";
+  const name = r.clientName || "Unnamed Client";
+  const phone = r.phone || "";
+  const svc = r.service || "";
+  return `${i}. ${r.date} ${t} — ${name} (${phone}) — ${svc}`;
+}
+
+// Share all reservations for a date
+async function shareReservationsForDate(dateStr){
+  const all = await getAllReservations();
+  const sorted = all
+    .filter(r => r.date === dateStr)
+    .sort((a,b)=>(a.time24 || to24h(a.time||"00:00")).localeCompare(b.time24 || to24h(b.time||"00:00")));
+
+  if (!sorted.length){
+    showToast("No reservations to share for " + dateStr);
+    return;
+  }
+
+  const lines = sorted.map((r,i)=>formatReservationLine(r,i+1)).join("\n");
+  const subject = `Reservations for ${dateStr} — Sista Sista Salon & Spa`;
+  const body = `Hello,\n\nHere are the reservations for ${dateStr}:\n\n${lines}\n\n— Sent from Sista Sista Salon & Spa system`;
+  mailtoOpen(subject, body);
+}
+
+// Idempotent timeline render (8AM–12AM)
+async function loadTimelineHoursWithReservations(){
+  const myToken = ++TL_RENDER_TOKEN;
+
+  const reservations = await getAllReservations();
+  if (myToken !== TL_RENDER_TOKEN) return; // cancel stale renders
+
+  LAST_RESERVATIONS = reservations;
+
+  const timeline = document.getElementById("timelineHours");
+  if (!timeline) return; // not on reservations page
+
+  // fresh grid
+  timeline.innerHTML = "";
+  for (let hour = 8; hour <= 24; hour++){
+    const block = document.createElement("div");
+    block.className = "hour-block";
+    block.setAttribute("data-hour", hour);
+
+    const label = document.createElement("strong");
+    label.className = "time-label";
+    label.textContent = (function formatHour(h){
+      if(h===24||h===0) return "12 AM";
+      if(h===12) return "12 PM";
+      const ampm = h>12 ? "PM" : "AM";
+      const h12 = h>12 ? h-12 : h;
+      return `${h12} ${ampm}`;
+    })(hour);
+
+    block.appendChild(label);
+    timeline.appendChild(block);
+  }
+
+  // paint cards with per-card share icon
+  reservations.forEach(res=>{
+    const h24 = res.time24 || to24h(res.time || "00:00");
+    const hour = parseInt(h24.split(":")[0],10);
+    const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
+    if(!block) return;
+
+    const subj = `Reservation — ${res.clientName || "Client"} on ${res.date} at ${res.time || h24}`;
+    const body =
+      `Client: ${res.clientName || ""}\n` +
+      `Phone: ${res.phone || ""}\n` +
+      `Service: ${res.service || ""}\n` +
+      `Date: ${res.date || ""}\n` +
+      `Time: ${res.time || h24}\n\n` +
+      `— Sent from Sista Sista Salon & Spa system`;
+    const mailto = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+
+    const card = document.createElement("div");
+    card.className = "reservation-card";
+    card.innerHTML = `
+      <strong>${res.clientName || "Unnamed Client"}</strong>
+      <a href="${mailto}" class="share-one" title="Share via email" style="margin-left:8px;">
+        <i class="fas fa-envelope"></i>
+      </a><br>
+      <i class="fas fa-phone"></i> ${res.phone || ""}<br>
+      <i class="fas fa-calendar"></i> ${res.date || ""} at ${(res.time || h24)}<br>
+      <i class="fas fa-scissors"></i> ${res.service || ""}
+    `;
+    block.appendChild(card);
+  });
+}
+
+// Broadcast updates between tabs and wire global Share button
+document.addEventListener("DOMContentLoaded", () => {
+  // Only activate on the reservations page (elements must exist)
+  const timelineEl = document.getElementById("timelineHours");
+  if (timelineEl) {
+    // initial render
+    loadTimelineHoursWithReservations();
+
+    // cross-tab refresh
+    if (typeof BroadcastChannel !== "undefined") {
+      const resChannel = new BroadcastChannel("reservations");
+      resChannel.onmessage = (event)=>{
+        const msg = event.data;
+        if (msg?.type === "update" && msg.from !== undefined) {
+          loadTimelineHoursWithReservations();
+        }
+      };
+    }
+
+    // Global Share button
+    const shareBtn = document.getElementById("shareTodayBtn");
+    if (shareBtn) {
+      shareBtn.addEventListener("click", () => {
+        const chosen =
+          document.getElementById("shareDate")?.value ||        // optional date picker
+          document.getElementById("reservationDate")?.value ||   // form date if present
+          localDateStr();                                        // fallback: today
+        shareReservationsForDate(chosen);
+      });
+    }
+  }
 });

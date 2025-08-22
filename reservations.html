@@ -206,11 +206,20 @@
     </div>
 
     <div class="timeline-wrapper" style="margin: 2rem 0;">
-      <h3>Upcoming Reservations (Timeline View)</h3>
-      <div class="timeline-scroll">
-        <div id="timelineHours" class="timeline-hours"></div>
-      </div>
-    </div>
+  <h3>Upcoming Reservations (Timeline View)</h3>
+
+  <!-- Share toolbar -->
+  <div class="share-toolbar" style="display:flex; justify-content:flex-end; gap:10px; margin:.5rem 0 1rem;">
+    <button id="shareTodayBtn" class="btn" title="Share via email">
+      <i class="fas fa-share"></i> Share via Email
+    </button>
+  </div>
+
+  <div class="timeline-scroll">
+    <div id="timelineHours" class="timeline-hours"></div>
+  </div>
+</div>
+
 
     <!-- Footer -->
     <div class="app-footer">
