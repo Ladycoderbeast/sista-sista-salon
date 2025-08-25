@@ -5,95 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Notepad | Sista Sista Salon & Spa</title>
 
-  <!-- Auth + base styles to match other pages -->
-  <script src="auth.js"></script>
+  <!-- Base styles to match the app -->
   <link rel="stylesheet" href="style.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <!-- Flatpickr (same pickers as other pages) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
   <style>
-    .pad-wrap{max-width:900px;margin:1rem auto;padding:1rem}
-    .pad-toolbar{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:flex-end;margin:.5rem 0 1rem}
-    .pad-toolbar .btn{background:#000;color:#fff;border:none;padding:.55rem .9rem;border-radius:.5rem;cursor:pointer}
-    .pad-toolbar .btn:disabled{opacity:.6;cursor:not-allowed}
-    .pad-meta{font-size:.85rem;color:#666;margin:.25rem 0 .75rem}
-    .pad-area{width:100%;min-height:60vh;resize:vertical;padding:1rem;border:1px solid #ddd;border-radius:.75rem;font-size:1rem;line-height:1.5}
+    /* Light card like Bookings page */
+    .form-card {
+      max-width: 420px;
+      margin: 40px auto 18px;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      padding: 16px;
+    }
+    body.dark .form-card { background:#222; color:#fff; border-color:#333; }
+    .form-card h3 { margin: 4px 0 12px; }
 
-    .user-profile {
-      position: relative;
-      display: inline-block;
-      margin-top: 8px;
-      margin-right: 50px;
-      margin-left: 30px;
+    .form-card input[type="text"],
+    .form-card input[type="number"],
+    .form-card input[type="file"],
+    .form-card select {
+      width: 100%;
+      padding: 10px 12px;
+      margin: 6px 0;
+      border-radius: 8px;
+      border: 1px solid #dcdcdc;
+      outline: none;
+      font-size: 14px;
     }
-    .user-icon { cursor: pointer; color: #000; }
-    .user-dropdown {
-      display: none; position: absolute; background-color: white; min-width: 50px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; padding: 10px;
-    }
-    body.dark .user-dropdown { background-color: #444; color: #fff; }
+    body.dark .form-card input,
+    body.dark .form-card select { background:#333; color:#fff; border-color:#555; }
 
-    /* Dark theme compatibility (local) */
-    body.dark-mode .pad-area{background:#1f1f1f;color:#fff;border-color:#444}
-    body.dark-mode .pad-meta{color:#aaa}
-    body.dark-mode .pad-toolbar .btn{background:#111;color:#fff}
+    .btn {
+      width: 100%;
+      background:#000; color:#fff;
+      border: none; border-radius: 8px;
+      padding: 10px 14px; cursor: pointer;
+      font-weight: 600;
+    }
 
-    /* ---------- Toasts ---------- */
-    .toast {
-      position: fixed;
-      left: 50%;
-      bottom: 24px;
-      transform: translateX(-50%) translateY(20px);
-      background: #111;
-      color: #fff;
-      padding: .7rem 1rem;
-      border-radius: .5rem;
-      box-shadow: 0 6px 20px rgba(0,0,0,.25);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity .2s ease, transform .2s ease;
-      z-index: 1000;
-      font-size: .95rem;
+    /* Grouped services checklist (same look as clients page) */
+    .services-checklist {
+      max-height: 260px; overflow: auto; border: 1px solid #ddd;
+      padding: 10px; border-radius: 10px; background: #fafafa;
+      margin-top: 6px;
     }
-    .toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-      pointer-events: auto;
-    }
-    body.dark-mode .toast { background:#000; color:#fff; }
+    body.dark .services-checklist { background:#2a2a2a; border-color:#444; }
+    .services-checklist details { margin: 6px 0; }
+    .services-checklist summary { cursor: pointer; font-weight: 600; }
+    .services-checklist label { display:block; margin:6px 0; }
 
-    /* Confirm bar variant */
-    .toast.confirm {
-      display:flex;
-      gap:.75rem;
-      align-items:center;
+    .table-wrapper { width: 100%; padding: 0 20px 40px; box-sizing: border-box; }
+    .clients-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .clients-table th, .clients-table td {
+      border: 1px solid #ddd; padding: 10px 12px; text-align: left; font-size: 14px;
+      white-space: normal; word-break: break-word;
     }
-    .toast .actions{
-      display:flex;
-      gap:.5rem;
-      margin-left:.5rem;
-    }
-    .toast .t-btn{
-      border:none;
-      border-radius:.45rem;
-      padding:.45rem .7rem;
-      font-weight:600;
-      cursor:pointer;
-    }
-    .toast .t-btn.cancel{background:#444;color:#fff}
-    .toast .t-btn.ok{background:#e02424;color:#fff}
-    body.dark-mode .toast .t-btn.cancel{background:#333}
-    body.dark-mode .toast .t-btn.ok{background:#aa2626}
+    .clients-table th { background:#000; color:#fff; font-weight:700; }
+    body.dark .clients-table th { background:#111; }
+    body.dark .clients-table td, body.dark .clients-table th { border-color:#333; }
+    .delete-btn { background:#000000; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; }
+    .dashboard-header { padding: 12px 20px; display:flex; justify-content:flex-end; }
+    .theme-toggle-wrapper { display:flex; align-items:center; gap:8px; }
   </style>
 </head>
 <body>
-<script>
-  const user = JSON.parse(localStorage.getItem("loggedUser"));
-  if (!user || !user.role) { window.location.href = "index.html"; }
-</script>
-
 <div class="dashboard-container">
-  <!-- Sidebar -->
+  <!-- Sidebar (minimal) -->
   <aside class="sidebar">
     <div class="sidebar-logo">
       <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
@@ -103,7 +88,6 @@
       <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
       <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
       <a href="notepad.html" class="active"><i class="fas fa-note-sticky"></i> Notepad</a>
-      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
       <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
       <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
       <a href="revenue.html"><i class="fa fa-table"></i> Revenue Summary</a>
@@ -111,7 +95,7 @@
     </nav>
   </aside>
 
-  <!-- Main Content -->
+  <!-- Main -->
   <main class="main-content">
     <div class="dashboard-header">
       <div class="theme-toggle-wrapper">
@@ -121,177 +105,250 @@
           <span class="slider"></span>
         </label>
       </div>
-      <div class="user-profile">
-        <div class="user-icon" id="userIcon">
-          <i class="fas fa-user-circle fa-2x"></i>
-        </div>
-        <div class="user-dropdown" id="userDropdown">
-          <p id="loggedInUser">Loading...</p>
-          <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
-        </div>
+    </div>
+    
+    <!-- Form like Bookings card, but with Clients multi-select checklist -->
+    <section class="form-card">
+      <h3>Add Entry</h3>
+
+      <input type="text" id="npName" placeholder="Full Name" required />
+      <input type="text" id="npPhone" placeholder="Phone Number" required />
+
+      <label style="font-weight:600; margin-top:4px;">Services (pick one or more)</label>
+      <div id="npServicesGroup" class="services-checklist" role="group" aria-label="Services">
+        <details open>
+          <summary>Natural Hair</summary>
+          <label><input type="checkbox" value="Shampoo & Conrow"> Shampoo & Conrow</label>
+          <label><input type="checkbox" value="Detangling Shampoo Blowout"> Detangling Shampoo Blowout</label>
+          <label><input type="checkbox" value="Natural Ponytail Hair No Silk Press"> Natural Ponytail Hair No Silk Press</label>
+          <label><input type="checkbox" value="Silk Press"> Silk Press</label>
+          <label><input type="checkbox" value="Conditioning Treatment"> Conditioning Treatment</label>
+          <label><input type="checkbox" value="Dandruff Treatment"> Dandruff Treatment</label>
+          <label><input type="checkbox" value="Olapex Breakage Treatment"> Olapex Breakage Treatment</label>
+          <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
+          <label><input type="checkbox" value="Wig sew in(closure)"> Wig sew in(closure)</label>
+          <label><input type="checkbox" value="Wig sew in(frontal)"> Wig sew in(frontal)</label>
+          <label><input type="checkbox" value="Wig revamp(shampooing+curling)"> Wig revamp(shampooing+curling)</label>
+          <label><input type="checkbox" value="Wig revamp(shampooing+straight)"> Wig revamp(shampooing+straight)</label>
+          <label><input type="checkbox" value="Wig install ( frontal) sticking"> Wig install ( frontal) sticking</label>
+          <label><input type="checkbox" value="Relax cut & style( pixie)"> Relax cut & style( pixie)</label>
+          <label><input type="checkbox" value="Shampoo & style (short hair)"> Shampoo & style (short hair)</label>
+          <label><input type="checkbox" value="Wig straightening or curling of weaves"> Wig straightening or curling of weaves</label>
+        </details>
+
+        <details>
+          <summary>Relaxed Hair</summary>
+          <label><input type="checkbox" value="Shampoo+Blow Drying+Straightening"> Shampoo+Blow Drying+Straightening</label>
+          <label><input type="checkbox" value="Shampoo+roller setting"> Shampoo+roller setting</label>
+          <label><input type="checkbox" value="Shampoo & Conrows"> Shampoo & Conrows</label>
+          <label><input type="checkbox" value="Relaxer+blowdrying+straightening(salon cream)one"> Relaxer+blowdrying+straightening(salon cream)one</label>
+          <label><input type="checkbox" value="Relaxer+Rollerset one & half(salon cream)"> Relaxer+Rollerset one & half(salon cream)</label>
+          <label><input type="checkbox" value="Relaxer+blowdrying+straightening one & half"> Relaxer+blowdrying+straightening one & half</label>
+          <label><input type="checkbox" value="Relaxer two (salon cream)"> Relaxer two (salon cream)</label>
+          <label><input type="checkbox" value="Relaxer+blowouts one & half(salon cream)"> Relaxer+blowouts one & half(salon cream)</label>
+          <label><input type="checkbox" value="Relaxer+roller setting(personal cream)"> Relaxer+roller setting(personal cream)</label>
+          <label><input type="checkbox" value="Relaxer+blowdrying+straightening(personal cream)"> Relaxer+blowdrying+straightening(personal cream)</label>
+          <label><input type="checkbox" value="Own relaxer without shampoo & conditioner"> Own relaxer without shampoo & conditioner</label>
+          <label><input type="checkbox" value="Extra"> Extra</label>
+          <label><input type="checkbox" value="Trimming"> Trimming</label>
+          <label><input type="checkbox" value="Cutting"> Cutting</label>
+          <label><input type="checkbox" value="Other Con-rows"> Other Con-rows</label>
+          <label><input type="checkbox" value="Conditioning treatment"> Conditioning treatment</label>
+          <label><input type="checkbox" value="Dandruff treatment"> Dandruff treatment</label>
+          <label><input type="checkbox" value="Olaplex Breakage treatment"> Olaplex Breakage treatment</label>
+          <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
+          <label><input type="checkbox" value="Traditional sew in"> Traditional sew in</label>
+          <label><input type="checkbox" value="Closure sew in"> Closure sew in</label>
+          <label><input type="checkbox" value="Tracks glue"> Tracks glue</label>
+          <label><input type="checkbox" value="Tracks sew in"> Tracks sew in</label>
+          <label><input type="checkbox" value="Relaxed hair ponytail"> Relaxed hair ponytail</label>
+          <label><input type="checkbox" value="Relaxer front & back"> Relaxer front & back</label>
+        </details>
+
+        <details>
+          <summary>Nails</summary>
+          <label><input type="checkbox" value="Pedicure & No polish"> Pedicure & No polish</label>
+          <label><input type="checkbox" value="Pedicure + Regular polish"> Pedicure + Regular polish</label>
+          <label><input type="checkbox" value="Pedicure + Gel polish"> Pedicure + Gel polish</label>
+          <label><input type="checkbox" value="Pedicure + Acrylic on toes"> Pedicure + Acrylic on toes</label>
+          <label><input type="checkbox" value="Pedicure + stick on"> Pedicure + stick on</label>
+          <label><input type="checkbox" value="Pedicure stick on + French"> Pedicure stick on + French</label>
+          <label><input type="checkbox" value="Extra for French tips"> Extra for French tips</label>
+          <label><input type="checkbox" value="Jelly Pedicure & Gel polish"> Jelly Pedicure & Gel polish</label>
+          <label><input type="checkbox" value="Pedicure men"> Pedicure men</label>
+          <label><input type="checkbox" value="Manicure"> Manicure</label>
+          <label><input type="checkbox" value="Regular Polish"> Regular Polish</label>
+          <label><input type="checkbox" value="Basic Gel polish"> Basic Gel polish</label>
+          <label><input type="checkbox" value="BIAB / Structured Gel polish"> BIAB / Structured Gel polish</label>
+          <label><input type="checkbox" value="Hard Gel + Gel polish"> Hard Gel + Gel polish</label>
+          <label><input type="checkbox" value="Acrylic Full nails"> Acrylic Full nails</label>
+          <label><input type="checkbox" value="Acrylic nails on toes"> Acrylic nails on toes</label>
+          <label><input type="checkbox" value="Acrylic on toes refill"> Acrylic on toes refill</label>
+          <label><input type="checkbox" value="Acrylic refill (did full set with us)"> Acrylic refill (did full set with us)</label>
+          <label><input type="checkbox" value="Acrylic refill ( did not do full set with us)"> Acrylic refill ( did not do full set with us)</label>
+          <label><input type="checkbox" value="Stick on/ Gel polish"> Stick on/ Gel polish</label>
+          <label><input type="checkbox" value="Dissolving"> Dissolving</label>
+          <label><input type="checkbox" value="Dissolving + Manicure"> Dissolving + Manicure</label>
+        </details>
+
+        <details>
+          <summary>Waxing</summary>
+          <label><input type="checkbox" value="Eyebrow Wax"> Eyebrow Wax</label>
+          <label><input type="checkbox" value="Chin Wax"> Chin Wax</label>
+          <label><input type="checkbox" value="Chest Wax"> Chest Wax</label>
+          <label><input type="checkbox" value="Eyebrow shaping"> Eyebrow shaping</label>
+          <label><input type="checkbox" value="Upper lip"> Upper lip</label>
+          <label><input type="checkbox" value="Under arm"> Under arm</label>
+          <label><input type="checkbox" value="Stomach"> Stomach</label>
+          <label><input type="checkbox" value="Full arm"> Full arm</label>
+          <label><input type="checkbox" value="Half arm"> Half arm</label>
+          <label><input type="checkbox" value="Half Legs"> Half Legs</label>
+          <label><input type="checkbox" value="Full leg"> Full leg</label>
+          <label><input type="checkbox" value="Bikini area"> Bikini area</label>
+          <label><input type="checkbox" value="Full Face"> Full Face</label>
+          <label><input type="checkbox" value="Hollywood wax"> Hollywood wax</label>
+        </details>
+
+        <details>
+          <summary>Spa</summary>
+          <label><input type="checkbox" value="Hot stone massage 1hr"> Hot stone massage 1hr</label>
+          <label><input type="checkbox" value="Hot stone massage 1hr 30mins"> Hot stone massage 1hr 30mins</label>
+          <label><input type="checkbox" value="Deep tissue massage 30mins"> Deep tissue massage 30mins</label>
+          <label><input type="checkbox" value="Deep tissue massage 1hr"> Deep tissue massage 1hr</label>
+          <label><input type="checkbox" value="Deep tissue massage 1hr 30mins"> Deep tissue massage 1hr 30mins</label>
+          <label><input type="checkbox" value="Swedish massage 30mins"> Swedish massage 30mins</label>
+          <label><input type="checkbox" value="Swedish massage 1hr"> Swedish massage 1hr</label>
+          <label><input type="checkbox" value="Swedish massage 1hr 30mins"> Swedish massage 1hr 30mins</label>
+          <label><input type="checkbox" value="Body Scrub"> Body Scrub</label>
+          <label><input type="checkbox" value="Steam Therapy"> Steam Therapy</label>
+          <label><input type="checkbox" value="Back Treatment"> Back Treatment</label>
+          <label><input type="checkbox" value="Facials Deep cleanse"> Facials Deep cleanse</label>
+          <label><input type="checkbox" value="Facials Deep cleanse (upgrade)"> Facials Deep cleanse (upgrade)</label>
+          <label><input type="checkbox" value="Facials Rejuvenation"> Facials Rejuvenation</label>
+          <label><input type="checkbox" value="Facials Anti acne"> Facials Anti acne</label>
+          <label><input type="checkbox" value="Facials Dermplane (Extra)"> Facials Dermplane (Extra)</label>
+        </details>
       </div>
-    </div>
 
-    <div class="dashboard-body">
-      <div class="pad-wrap">
-        <h2 class="form-heading">Client Notepad</h2>
-        <div class="pad-meta">
-          <span id="savedState">Autosave ready</span> •
-          <span>Use this scratch pad to jot services while the client decides. Not linked to records.</span>
-        </div>
+      <input type="text" id="npDate" placeholder="Select Date" />
+      <input type="text" id="npTime" placeholder="Select Time" />
 
-        <textarea id="notepad" class="pad-area" placeholder="Type anything here… e.g.
-Silk Press
-K18 Treatment
-Pedicure + Gel polish
-Detangling Shampoo Blowout"></textarea>
+      <button class="btn" id="btnSave" type="button">Save</button>
+    </section>
 
-        <div class="pad-toolbar">
-          <button class="btn" id="btnCopy"     title="Copy to clipboard"><i class="fas fa-copy"></i> Copy</button>
-          <button class="btn" id="btnPrint"    title="Print this note"><i class="fas fa-print"></i> Print</button>
-          <button class="btn" id="btnDownload" title="Download as .txt"><i class="fas fa-file-arrow-down"></i> Download</button>
-          <button class="btn" id="btnClear"    title="Clear the note"><i class="fas fa-eraser"></i> Clear</button>
-        </div>
-
-        <p class="hint">Notes are stored only in this browser (local storage). Clearing will erase the stored note.</p>
-      </div>
-    </div>
-
-    <div class="app-footer">
-      &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
-      Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
-    </div>
+    <!-- Table under the form (clients-like) -->
+    <section class="table-wrapper">
+      <table class="clients-table" id="npTable">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Phone</th>
+            <th>Services</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody><!-- rows injected --></tbody>
+      </table>
+    </section>
   </main>
 </div>
 
-<!-- Toast root (reused for both small toasts & confirm bar) -->
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
-
-<script src="user-icon.js"></script>
 <script>
-  /* ---------- Dark Mode toggle (set BOTH classes for full-page dark) ---------- */
-  const toggleDark = document.getElementById("toggleDark");
-  const savedTheme = localStorage.getItem("theme");
-
-  const shouldBeDark = savedTheme === "dark";
-  if (shouldBeDark) {
-    document.body.classList.add("dark", "dark-mode");   // << add both
-    if (toggleDark) toggleDark.checked = true;
-  }
-
-  toggleDark?.addEventListener("change", function () {
-    const on = this.checked;
-    document.body.classList.toggle("dark", on);         // << keep global dark styles
-    document.body.classList.toggle("dark-mode", on);    // << keep local dark styles
-    localStorage.setItem("theme", on ? "dark" : "light");
+  /* ===== Dark mode toggle (same pattern) ===== */
+  const darkToggle = document.getElementById("toggleDark");
+  if (localStorage.getItem("theme")==="dark") { document.body.classList.add("dark"); if(darkToggle) darkToggle.checked = true; }
+  darkToggle?.addEventListener("change", () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
   });
 
-  function logout() {
-    sessionStorage.removeItem("sista_session");
-    localStorage.removeItem("role");
-    localStorage.removeItem("username");
-    localStorage.removeItem("loggedUser");
-    window.location.replace("index.html");
+  /* ===== Flatpickr pickers (match other pages) ===== */
+  flatpickr("#npDate", { dateFormat: "Y-m-d" });
+  flatpickr("#npTime", { enableTime: true, noCalendar: true, dateFormat: "h:i K", time_24hr: false });
+
+  /* ===== Helpers for services checklist ===== */
+  function getSelectedServices() {
+    return Array.from(document.querySelectorAll('#npServicesGroup input[type="checkbox"]:checked'))
+      .map(cb => cb.value.trim())
+      .filter(Boolean);
+  }
+  function clearSelectedServices() {
+    document.querySelectorAll('#npServicesGroup input[type="checkbox"]').forEach(cb => cb.checked = false);
   }
 
-  /* ---------- Toast utilities ---------- */
-  const toastEl = document.getElementById("toast");
-  let toastTimer;
+  /* ===== IndexedDB (simple store just for notepad entries) ===== */
+  let npDB;
+  const req = indexedDB.open("SalonNotepadDB", 1);
+  req.onupgradeneeded = (e) => {
+    npDB = e.target.result;
+    if (!npDB.objectStoreNames.contains("notepad_entries")) {
+      npDB.createObjectStore("notepad_entries", { keyPath: "id", autoIncrement: true });
+    }
+  };
+  req.onsuccess = (e) => { npDB = e.target.result; loadEntries(); };
+  req.onerror = (e) => console.error("Notepad DB error:", e.target.error);
 
-  function showToast(message, ms=1400) {
-    toastEl.className = "toast";
-    toastEl.innerHTML = message;
-    clearTimeout(toastTimer);
-    requestAnimationFrame(() => toastEl.classList.add("show"));
-    toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
+  /* ===== Save ===== */
+  function saveEntry() {
+    if (!npDB) return alert("DB not ready yet.");
+    const name = document.getElementById("npName").value.trim();
+    const phone = document.getElementById("npPhone").value.trim();
+    const services = getSelectedServices();
+    const date = document.getElementById("npDate").value.trim();
+    const time = document.getElementById("npTime").value.trim();
+
+    if (!name || !phone || services.length===0 || !date || !time) {
+      alert("Please fill all fields and select at least one service.");
+      return;
+    }
+
+    const tx = npDB.transaction("notepad_entries", "readwrite");
+    tx.objectStore("notepad_entries").add({ name, phone, services, date, time, createdAt: Date.now() });
+    tx.oncomplete = () => { clearForm(); loadEntries(); };
+  }
+  document.getElementById("btnSave").addEventListener("click", saveEntry);
+
+  function clearForm() {
+    document.getElementById("npName").value = "";
+    document.getElementById("npPhone").value = "";
+    document.getElementById("npDate").value = "";
+    document.getElementById("npTime").value = "";
+    clearSelectedServices();
   }
 
-  function confirmToast(message, {okText="Clear", cancelText="Cancel"}={}) {
-    return new Promise(resolve => {
-      clearTimeout(toastTimer);
-      toastEl.className = "toast confirm";
-      toastEl.innerHTML = `
-        <span>${message}</span>
-        <div class="actions">
-          <button class="t-btn cancel">${cancelText}</button>
-          <button class="t-btn ok">${okText}</button>
-        </div>
-      `;
-      toastEl.classList.add("show");
-
-      const onCancel = () => { cleanup(); resolve(false); };
-      const onOk     = () => { cleanup(); resolve(true);  };
-
-      function cleanup(){
-        toastEl.classList.remove("show");
-        btnCancel.removeEventListener("click", onCancel);
-        btnOk.removeEventListener("click", onOk);
+  /* ===== Load + render table (live after save/delete) ===== */
+  function loadEntries() {
+    const tbody = document.querySelector("#npTable tbody");
+    tbody.innerHTML = "";
+    const tx = npDB.transaction("notepad_entries", "readonly");
+    tx.objectStore("notepad_entries").openCursor().onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (cursor) {
+        const v = cursor.value;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${v.name}</td>
+          <td>${v.phone}</td>
+          <td>${(v.services||[]).join(", ")}</td>
+          <td>${v.date||""}</td>
+          <td>${v.time||""}</td>
+          <td><button class="delete-btn" onclick="deleteEntry(${v.id})">Delete</button></td>
+        `;
+        tbody.appendChild(tr);
+        cursor.continue();
       }
-      const btnCancel = toastEl.querySelector(".t-btn.cancel");
-      const btnOk     = toastEl.querySelector(".t-btn.ok");
-      btnCancel.addEventListener("click", onCancel);
-      btnOk.addEventListener("click", onOk);
-    });
+    };
   }
+  window.loadEntries = loadEntries;
 
-  /* ---------- Notepad logic ---------- */
-  const KEY_TEXT = "notepad:text";
-  const KEY_SAVED_AT = "notepad:savedAt";
-  const elArea = document.getElementById("notepad");
-  const elState = document.getElementById("savedState");
-
-  // Load previous note
-  elArea.value = localStorage.getItem(KEY_TEXT) || "";
-  const prevStamp = localStorage.getItem(KEY_SAVED_AT);
-  if (prevStamp) elState.textContent = "Saved " + prevStamp;
-
-  // Autosave (debounced)
-  let tmr;
-  function stamp(){
-    const s = new Date().toLocaleString();
-    elState.textContent = "Saved " + s;
-    localStorage.setItem(KEY_SAVED_AT, s);
+  function deleteEntry(id) {
+    const tx = npDB.transaction("notepad_entries", "readwrite");
+    tx.objectStore("notepad_entries").delete(id);
+    tx.oncomplete = () => loadEntries();
   }
-  elArea.addEventListener("input", () => {
-    localStorage.setItem(KEY_TEXT, elArea.value);
-    elState.textContent = "Saving…";
-    clearTimeout(tmr);
-    tmr = setTimeout(stamp, 400);
-  });
-
-  // Copy
-  document.getElementById("btnCopy").addEventListener("click", async () => {
-    await navigator.clipboard.writeText(elArea.value || "");
-    showToast("Copied ✓");
-  });
-
-  // Print
-  document.getElementById("btnPrint").addEventListener("click", () => {
-    const w = window.open("", "_blank");
-    const safe = (elArea.value || "").replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-    w.document.write(`<pre style="font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial; white-space:pre-wrap; line-height:1.5; font-size:14px;">${safe}</pre>`);
-    w.document.close(); w.focus(); w.print();
-  });
-
-  // Download .txt
-  document.getElementById("btnDownload").addEventListener("click", () => {
-    const blob = new Blob([elArea.value || ""], {type: "text/plain;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "client-notes.txt"; a.click();
-    URL.revokeObjectURL(url);
-    showToast("Downloaded ✓");
-  });
-
-  // Clear via confirm toast
-  document.getElementById("btnClear").addEventListener("click", async () => {
-    const yes = await confirmToast("Clear this note?");
-    if (!yes) return;
-    elArea.value = "";
-    localStorage.setItem(KEY_TEXT, "");
-    stamp();
-    showToast("Note cleared ✓");
-  });
+  window.deleteEntry = deleteEntry;
 </script>
 </body>
 </html>

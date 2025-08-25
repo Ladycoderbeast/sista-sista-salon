@@ -662,5 +662,58 @@ container.style.justifyContent = isDesktop ? "flex-start" : "center";
       if (welcome) welcome.textContent = `🎉 Welcome ${name} to Sista Sista Salon & Spa`;
     });
   </script>
+
+<script>
+  function deleteReservation(id) {
+    const user = JSON.parse(localStorage.getItem("loggedUser") || "{}");
+    if (user.role !== "admin") {
+      if (typeof showToast === "function") showToast("Only admins can delete reservations.");
+      return;
+    }
+
+    if (!db) {
+      const req = indexedDB.open("SalonDB", 1);
+      req.onsuccess = () => { db = req.result; deleteReservation(id); };
+      req.onerror = () => (typeof showToast === "function") && showToast("DB open failed");
+      return;
+    }
+
+    const tx = db.transaction("reservations", "readwrite");
+    const store = tx.objectStore("reservations");
+    store.delete(Number(id));
+
+    tx.oncomplete = () => {
+      if (typeof loadUpcomingReservations === "function") {
+        loadUpcomingReservations(db);
+      } else if (typeof renderReservationPage === "function") {
+        const rtx = db.transaction("reservations", "readonly");
+        const rstore = rtx.objectStore("reservations");
+        rstore.getAll().onsuccess = (ev) => {
+          const today = new Date().toISOString().split("T")[0];
+          window.allReservations = (ev.target.result || [])
+            .filter(r => r.date >= today)
+            .sort((a,b) => a.date.localeCompare(b.date));
+          window.currentPage = 0;
+          renderReservationPage();
+        };
+      }
+
+      if (typeof checkUpcomingReservations === "function") {
+        checkUpcomingReservations();
+      }
+
+      if (typeof BroadcastChannel !== "undefined") {
+        new BroadcastChannel("reservations").postMessage({ type: "update", from: "dashboard" });
+      }
+
+      (typeof showToast === "function") && showToast("Reservation deleted");
+    };
+
+    tx.onerror = () => (typeof showToast === "function") && showToast("Delete failed");
+  }
+
+  window.deleteReservation = deleteReservation;
+</script>
+
 </body>
 </html>

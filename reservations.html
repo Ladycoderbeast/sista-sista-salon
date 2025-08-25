@@ -8,7 +8,6 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
-  <!-- Flatpickr CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
   <style>
@@ -23,7 +22,7 @@
     .timeline-hours{display:flex;flex-direction:column;border-left:2px solid #ccc;padding-left:40px;margin-top:1rem}
     .hour-block{position:relative;min-height:60px;border-bottom:1px solid #eee;padding-left:10px}
     .time-label{position:absolute;left:-60px;top:10px;font-weight:700;color:#333}
-    .reservation-card{margin-top:8px;background:#f9f9f9;padding:6px 12px;border-radius:8px;display:inline-block;font-size:14px;color:#000;box-shadow:1px 1px 3px rgba(0,0,0,.05)}
+    .reservation-card{margin-top:8px;background:#f9f9f9;padding:8px 12px;border-radius:8px;display:inline-block;font-size:14px;color:#000;box-shadow:1px 1px 3px rgba(0,0,0,.05)}
 
     /* Dark Mode */
     body.dark-mode .timeline-hours{border-left-color:#555}
@@ -31,10 +30,15 @@
     body.dark-mode .time-label{color:#ccc}
     body.dark-mode .reservation-card{background:#333;color:#fff;border:1px solid #555}
 
-    .reservation-card{background:#f9f9f9;border-radius:8px;padding:8px 12px;margin:4px 0;box-shadow:0 1px 3px rgba(0,0,0,.1);font-size:.9rem;line-height:1.4}
-    .hour-block:last-child{margin-bottom:80px}
-
-    
+    /* Services checklist (same look as Clients page) */
+    .form-wrapper-column{align-items:stretch}
+    .form-card{align-items:stretch !important;text-align:left}
+    .form-card > *{width:100%}
+    .services-checklist{max-height:260px;overflow:auto;border:1px solid #ddd;padding:10px;border-radius:10px;background:#fafafa;margin:0}
+    .services-checklist details{margin:6px 0}
+    .services-checklist summary{cursor:pointer;font-weight:600}
+    .services-checklist label{display:block;margin:6px 0}
+    .icon-actions i{vertical-align:middle}
   </style>
 </head>
 <body>
@@ -85,121 +89,131 @@
     <div class="dashboard-body">
       <div class="form-wrapper-column">
         <h2 class="form-heading">Make a Booking</h2>
+
         <form id="reservationForm" class="form-card" autocomplete="off">
           <input type="text" name="clientName" placeholder="Client Name" required />
           <input type="tel" name="phone" placeholder="Phone Number" required />
 
-          <select name="service" required>
-            <option value="">Select Service</option>
+          <label style="display:block;margin:10px 0 6px;font-weight:600;">Services (pick one or more)</label>
+          <div id="resServicesGroup" class="services-checklist" role="group" aria-label="Services">
             <!-- Natural Hair -->
-            <optgroup label="Natural Hair">
-              <option>Shampoo & Conrow</option>
-              <option>Detangling Shampoo Blowout</option>
-              <option>Natural Ponytail Hair No Silk Press</option>
-              <option>Silk Press</option>
-              <option>Conditioning Treatment</option>
-              <option>Dandruff Treatment</option>
-              <option>Olapex Breakage Treatment</option>
-              <option>K18 Treatment</option>
-              <option>Wig sew in(closure)</option>
-              <option>Wig sew in(frontal)</option>
-              <option>Wig revamp(shampooing+curling)</option>
-              <option>Wig revamp(shampooing+straight)</option>
-              <option>Wig install ( frontal) sticking</option>
-              <option>Relax cut & style( pixie)</option>
-              <option>Shampoo & style (short hair)</option>
-              <option>Wig straightening or curling of weaves</option>
-            </optgroup>
+            <details open>
+              <summary>Natural Hair</summary>
+              <label><input type="checkbox" value="Shampoo & Conrow"> Shampoo & Conrow</label>
+              <label><input type="checkbox" value="Detangling Shampoo Blowout"> Detangling Shampoo Blowout</label>
+              <label><input type="checkbox" value="Natural Ponytail Hair No Silk Press"> Natural Ponytail Hair No Silk Press</label>
+              <label><input type="checkbox" value="Silk Press"> Silk Press</label>
+              <label><input type="checkbox" value="Conditioning Treatment"> Conditioning Treatment</label>
+              <label><input type="checkbox" value="Dandruff Treatment"> Dandruff Treatment</label>
+              <label><input type="checkbox" value="Olapex Breakage Treatment"> Olapex Breakage Treatment</label>
+              <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
+              <label><input type="checkbox" value="Wig sew in(closure)"> Wig sew in(closure)</label>
+              <label><input type="checkbox" value="Wig sew in(frontal)"> Wig sew in(frontal)</label>
+              <label><input type="checkbox" value="Wig revamp(shampooing+curling)"> Wig revamp(shampooing+curling)</label>
+              <label><input type="checkbox" value="Wig revamp(shampooing+straight)"> Wig revamp(shampooing+straight)</label>
+              <label><input type="checkbox" value="Wig install ( frontal) sticking)"> Wig install ( frontal) sticking</label>
+              <label><input type="checkbox" value="Relax cut & style( pixie)"> Relax cut & style( pixie)</label>
+              <label><input type="checkbox" value="Shampoo & style (short hair)"> Shampoo & style (short hair)</label>
+              <label><input type="checkbox" value="Wig straightening or curling of weaves"> Wig straightening or curling of weaves</label>
+            </details>
+
             <!-- Relaxed Hair -->
-            <optgroup label="Relaxed Hair">
-              <option>Shampoo+Blow Drying+Straightening</option>
-              <option>Shampoo+roller setting</option>
-              <option>Shampoo & Conrows</option>
-              <option>Relaxer+blowdrying+straightening(salon cream)one</option>
-              <option>Relaxer+Rollerset one & half(salon cream)</option>
-              <option>Relaxer+blowdrying+straightening one & half</option>
-              <option>Relaxer two (salon cream)</option>
-              <option>Relaxer+blowouts one & half(salon cream)</option>
-              <option>Relaxer+roller setting(personal cream)</option>
-              <option>Relaxer+blowdrying+straightening(personal cream)</option>
-              <option>Own relaxer without shampoo & conditioner</option>
-              <option>Extra</option>
-              <option>Trimming</option>
-              <option>Cutting</option>
-              <option>Other Con-rows</option>
-              <option>Conditioning treatment</option>
-              <option>Dandruff treatment</option>
-              <option>Olaplex Breakage treatment</option>
-              <option>K18 Treatment</option>
-              <option>Traditional sew in</option>
-              <option>Closure sew in</option>
-              <option>Tracks glue</option>
-              <option>Tracks sew in</option>
-              <option>Relaxed hair ponytail </option>
-              <option>Relaxer front & back</option>
-            </optgroup>
+            <details>
+              <summary>Relaxed Hair</summary>
+              <label><input type="checkbox" value="Shampoo+Blow Drying+Straightening"> Shampoo+Blow Drying+Straightening</label>
+              <label><input type="checkbox" value="Shampoo+roller setting"> Shampoo+roller setting</label>
+              <label><input type="checkbox" value="Shampoo & Conrows"> Shampoo & Conrows</label>
+              <label><input type="checkbox" value="Relaxer+blowdrying+straightening(salon cream)one"> Relaxer+blowdrying+straightening(salon cream)one</label>
+              <label><input type="checkbox" value="Relaxer+Rollerset one & half(salon cream)"> Relaxer+Rollerset one & half(salon cream)</label>
+              <label><input type="checkbox" value="Relaxer+blowdrying+straightening one & half"> Relaxer+blowdrying+straightening one & half</label>
+              <label><input type="checkbox" value="Relaxer two (salon cream)"> Relaxer two (salon cream)</label>
+              <label><input type="checkbox" value="Relaxer+blowouts one & half(salon cream)"> Relaxer+blowouts one & half(salon cream)</label>
+              <label><input type="checkbox" value="Relaxer+roller setting(personal cream)"> Relaxer+roller setting(personal cream)</label>
+              <label><input type="checkbox" value="Relaxer+blowdrying+straightening(personal cream)"> Relaxer+blowdrying+straightening(personal cream)</label>
+              <label><input type="checkbox" value="Own relaxer without shampoo & conditioner"> Own relaxer without shampoo & conditioner</label>
+              <label><input type="checkbox" value="Extra"> Extra</label>
+              <label><input type="checkbox" value="Trimming"> Trimming</label>
+              <label><input type="checkbox" value="Cutting"> Cutting</label>
+              <label><input type="checkbox" value="Other Con-rows"> Other Con-rows</label>
+              <label><input type="checkbox" value="Conditioning treatment"> Conditioning treatment</label>
+              <label><input type="checkbox" value="Dandruff treatment"> Dandruff treatment</label>
+              <label><input type="checkbox" value="Olaplex Breakage treatment"> Olaplex Breakage treatment</label>
+              <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
+              <label><input type="checkbox" value="Traditional sew in"> Traditional sew in</label>
+              <label><input type="checkbox" value="Closure sew in"> Closure sew in</label>
+              <label><input type="checkbox" value="Tracks glue"> Tracks glue</label>
+              <label><input type="checkbox" value="Tracks sew in"> Tracks sew in</label>
+              <label><input type="checkbox" value="Relaxed hair ponytail"> Relaxed hair ponytail</label>
+              <label><input type="checkbox" value="Relaxer front & back"> Relaxer front & back</label>
+            </details>
+
             <!-- Nails -->
-            <optgroup label="Nails">
-              <option>Pedicure & No polish</option>
-              <option>Pedicure + Regular polish</option>
-              <option>Pedicure + Gel polish</option>
-              <option>Pedicure + Acrylic on toes</option>
-              <option>Pedicure + stick on</option>
-              <option>Pedicure stick on + French</option>
-              <option>Extra for French tips</option>
-              <option>Jelly Pedicure & Gel polish</option>
-              <option>Pedicure men</option>
-              <option>Manicure</option>
-              <option>Regular Polish</option>
-              <option>Basic Gel polish</option>
-              <option>BIAB / Structured Gel polish</option>
-              <option>Hard Gel + Gel polish</option>
-              <option>Acrylic Full nails</option>
-              <option>Acrylic nails on toes</option>
-              <option>Acrylic on toes refill</option>
-              <option>Acrylic refill (did full set with us)</option>
-              <option>Acrylic refill ( did not do full set with us)</option>
-              <option>Stick on/ Gel polish</option>
-              <option>Dissolving</option>
-              <option>Dissolving + Manicure</option>
-            </optgroup>
+            <details>
+              <summary>Nails</summary>
+              <label><input type="checkbox" value="Pedicure & No polish"> Pedicure & No polish</label>
+              <label><input type="checkbox" value="Pedicure + Regular polish"> Pedicure + Regular polish</label>
+              <label><input type="checkbox" value="Pedicure + Gel polish"> Pedicure + Gel polish</label>
+              <label><input type="checkbox" value="Pedicure + Acrylic on toes"> Pedicure + Acrylic on toes</label>
+              <label><input type="checkbox" value="Pedicure + stick on"> Pedicure + stick on</label>
+              <label><input type="checkbox" value="Pedicure stick on + French"> Pedicure stick on + French</label>
+              <label><input type="checkbox" value="Extra for French tips"> Extra for French tips</label>
+              <label><input type="checkbox" value="Jelly Pedicure & Gel polish"> Jelly Pedicure & Gel polish</label>
+              <label><input type="checkbox" value="Pedicure men"> Pedicure men</label>
+              <label><input type="checkbox" value="Manicure"> Manicure</label>
+              <label><input type="checkbox" value="Regular Polish"> Regular Polish</label>
+              <label><input type="checkbox" value="Basic Gel polish"> Basic Gel polish</label>
+              <label><input type="checkbox" value="BIAB / Structured Gel polish"> BIAB / Structured Gel polish</label>
+              <label><input type="checkbox" value="Hard Gel + Gel polish"> Hard Gel + Gel polish</label>
+              <label><input type="checkbox" value="Acrylic Full nails"> Acrylic Full nails</label>
+              <label><input type="checkbox" value="Acrylic nails on toes"> Acrylic nails on toes</label>
+              <label><input type="checkbox" value="Acrylic on toes refill"> Acrylic on toes refill</label>
+              <label><input type="checkbox" value="Acrylic refill (did full set with us)"> Acrylic refill (did full set with us)</label>
+              <label><input type="checkbox" value="Acrylic refill ( did not do full set with us)"> Acrylic refill ( did not do full set with us)</label>
+              <label><input type="checkbox" value="Stick on/ Gel polish"> Stick on/ Gel polish</label>
+              <label><input type="checkbox" value="Dissolving"> Dissolving</label>
+              <label><input type="checkbox" value="Dissolving + Manicure"> Dissolving + Manicure</label>
+            </details>
+
             <!-- Waxing -->
-            <optgroup label="Waxing">
-              <option>Eyebrow Wax</option>
-              <option>Chin Wax</option>
-              <option>Chest Wax</option>
-              <option>Eyebrow shaping</option>
-              <option>Upper lip</option>
-              <option>Under arm</option>
-              <option>Stomach</option>
-              <option>Full arm</option>
-              <option>Half arm</option>
-              <option>Half Legs</option>
-              <option>Full leg</option>
-              <option>Bikini area</option>
-              <option>Full Face</option>
-              <option>Hollywood wax</option>
-            </optgroup>
+            <details>
+              <summary>Waxing</summary>
+              <label><input type="checkbox" value="Eyebrow Wax"> Eyebrow Wax</label>
+              <label><input type="checkbox" value="Chin Wax"> Chin Wax</label>
+              <label><input type="checkbox" value="Chest Wax"> Chest Wax</label>
+              <label><input type="checkbox" value="Eyebrow shaping"> Eyebrow shaping</label>
+              <label><input type="checkbox" value="Upper lip"> Upper lip</label>
+              <label><input type="checkbox" value="Under arm"> Under arm</label>
+              <label><input type="checkbox" value="Stomach"> Stomach</label>
+              <label><input type="checkbox" value="Full arm"> Full arm</label>
+              <label><input type="checkbox" value="Half arm"> Half arm</label>
+              <label><input type="checkbox" value="Half Legs"> Half Legs</label>
+              <label><input type="checkbox" value="Full leg"> Full leg</label>
+              <label><input type="checkbox" value="Bikini area"> Bikini area</label>
+              <label><input type="checkbox" value="Full Face"> Full Face</label>
+              <label><input type="checkbox" value="Hollywood wax"> Hollywood wax</label>
+            </details>
+
             <!-- Spa -->
-            <optgroup label="Spa">
-              <option>Hot stone massage 1hr</option>
-              <option>Hot stone massage 1hr 30mins</option>
-              <option>Deep tissue massage 30mins</option>
-              <option>Deep tissue massage 1hr</option>
-              <option>Deep tissue massage 1hr 30mins</option>
-              <option>Swedish massage 30mins</option>
-              <option>Swedish massage 1hr</option>
-              <option>Swedish massage 1hr 30mins</option>
-              <option>Body Scrub</option>
-              <option>Steam Therapy</option>
-              <option>Back Treatment</option>
-              <option>Facials Deep cleanse</option>
-              <option>Facials Deep cleanse (upgrade)</option>
-              <option>Facials Rejuvenation</option>
-              <option>Facials Anti acne</option>
-              <option>Facials Dermplane (Extra)</option>
-            </optgroup>
-          </select>
+            <details>
+              <summary>Spa</summary>
+              <label><input type="checkbox" value="Hot stone massage 1hr"> Hot stone massage 1hr</label>
+              <label><input type="checkbox" value="Hot stone massage 1hr 30mins"> Hot stone massage 1hr 30mins</label>
+              <label><input type="checkbox" value="Deep tissue massage 30mins"> Deep tissue massage 30mins</label>
+              <label><input type="checkbox" value="Deep tissue massage 1hr"> Deep tissue massage 1hr</label>
+              <label><input type="checkbox" value="Deep tissue massage 1hr 30mins"> Deep tissue massage 1hr 30mins</label>
+              <label><input type="checkbox" value="Swedish massage 30mins"> Swedish massage 30mins</label>
+              <label><input type="checkbox" value="Swedish massage 1hr"> Swedish massage 1hr</label>
+              <label><input type="checkbox" value="Swedish massage 1hr 30mins"> Swedish massage 1hr 30mins</label>
+              <label><input type="checkbox" value="Body Scrub"> Body Scrub</label>
+              <label><input type="checkbox" value="Steam Therapy"> Steam Therapy</label>
+              <label><input type="checkbox" value="Back Treatment"> Back Treatment</label>
+              <label><input type="checkbox" value="Facials Deep cleanse"> Facials Deep cleanse</label>
+              <label><input type="checkbox" value="Facials Deep cleanse (upgrade)"> Facials Deep cleanse (upgrade)</label>
+              <label><input type="checkbox" value="Facials Rejuvenation"> Facials Rejuvenation</label>
+              <label><input type="checkbox" value="Facials Anti acne"> Facials Anti acne</label>
+              <label><input type="checkbox" value="Facials Dermplane (Extra)"> Facials Dermplane (Extra)</label>
+            </details>
+          </div>
 
           <input type="text" id="reservationDate" name="date" placeholder="Select Date" required />
           <input type="text" id="reservationTime" name="time" placeholder="Select Time" required />
@@ -209,22 +223,19 @@
     </div>
 
     <div class="timeline-wrapper" style="margin: 2rem 0;">
-  <h3>Upcoming Bookings (Timeline View)</h3>
+      <h3>Upcoming Bookings (Timeline View)</h3>
 
-  <!-- Share toolbar -->
-  <div class="share-toolbar" style="display:flex; justify-content:flex-end; gap:10px; margin:.5rem 0 1rem;">
-    <button id="shareTodayBtn" type="button" class="btn" title="Share via email">
-  <i class="fas fa-share"></i> Share via Email
-</button>
-  </div>
+      <div class="share-toolbar" style="display:flex; justify-content:flex-end; gap:10px; margin:.5rem 0 1rem;">
+        <button id="shareTodayBtn" type="button" class="btn" title="Share via email">
+          <i class="fas fa-share"></i> Share via Email
+        </button>
+      </div>
 
-  <div class="timeline-scroll">
-    <div id="timelineHours" class="timeline-hours"></div>
-  </div>
-</div>
+      <div class="timeline-scroll">
+        <div id="timelineHours" class="timeline-hours"></div>
+      </div>
+    </div>
 
-
-    <!-- Footer -->
     <div class="app-footer">
       &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
       Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
@@ -232,16 +243,23 @@
   </main>
 </div>
 
-<!-- Toast Message -->
 <div id="toast" class="toast-message">Reservation saved!</div>
 
+<!-- Core app (timeline + delete live here) -->
 <script src="app.js"></script>
-<script>
-  // ---- Small helpers ----
-  function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000)}
-  const TAB_ID = Math.random().toString(36).slice(2); // to ignore our own broadcast
 
-  // AM/PM -> 24h "HH:mm"
+<!-- Page-specific logic -->
+<script>
+  // Small toast helper for this page
+  function showToast(message){const t=document.getElementById("toast");t.textContent=message;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000)}
+
+  // Collect services (checkboxes)
+  function getSelectedServices() {
+    const checks = document.querySelectorAll('#resServicesGroup input[type="checkbox"]:checked');
+    return Array.from(checks).map(cb => cb.value.trim()).filter(Boolean);
+  }
+
+  // AM/PM -> 24h for storage
   function to24h(t=""){
     t=t.trim();
     if(/am|pm/i.test(t)){
@@ -252,7 +270,7 @@
       if(hh<12 && pm) hh+=12;
       return String(hh).padStart(2,"0")+":"+mm;
     }
-    return t; // already 24h
+    return t;
   }
   function localTimestamp(dateStr="", timeStr="00:00"){
     const [y,m,d]=dateStr.split("-").map(Number);
@@ -261,36 +279,41 @@
     return new Date(y,m-1,d,H||0,M||0,0,0).getTime();
   }
 
-  // Submit handler
+  // Save reservation
   document.getElementById("reservationForm").addEventListener("submit", function(e){
     e.preventDefault();
     const form=e.target;
 
+    const services = getSelectedServices();
+    if (services.length === 0) { showToast("Pick at least one service."); return; }
+
     const date=form.date.value;
-    const time=form.time.value;        // AM/PM as seen by user
-    const time24=to24h(time);          // normalized
+    const time=form.time.value;
+    const time24=to24h(time);
     const timestamp=localTimestamp(date,time);
 
     const reservation={
       clientName: form.clientName.value.trim(),
       phone: form.phone.value.trim(),
-      service: form.service.value,
+      services,
+      service: services.join(", "), // legacy text
       date, time, time24, timestamp,
       createdAt: new Date().toISOString()
     };
 
     const req=indexedDB.open("SalonDB",1);
     req.onsuccess=function(ev){
-      const db=ev.target.result;
-      const tx=db.transaction("reservations","readwrite");
+      const _db=ev.target.result;
+      const tx=_db.transaction("reservations","readwrite");
       tx.objectStore("reservations").add(reservation);
       tx.oncomplete=()=>{
         showToast("Reservation saved!");
         form.reset();
-        // refresh this tab immediately
-        loadTimelineHoursWithReservations();
-        // notify other tabs only
-        resChannel.postMessage({type:"update", from:TAB_ID});
+        // refresh timeline
+        if (typeof loadTimelineHoursWithReservations==="function") loadTimelineHoursWithReservations();
+        // notify other tabs
+        if (typeof BroadcastChannel!=="undefined")
+          new BroadcastChannel("reservations").postMessage({type:"update", from:"reservations-page"});
       };
       tx.onerror=()=>showToast("Error saving reservation.");
     };
@@ -301,172 +324,29 @@
   toggleDark.addEventListener("change",function(){document.body.classList.toggle("dark-mode",this.checked);});
 
   function logout() {
-    // kill the session used by auth.js
     sessionStorage.removeItem("sista_session");
-
-    // keep your existing clears
     localStorage.removeItem("role");
     localStorage.removeItem("username");
     localStorage.removeItem("loggedUser");
-
-    // redirect (prevents back-nav into protected page)
     window.location.replace("index.html");
   }
 </script>
 
-<script src="user-icon.js"></script>
+<!-- Flatpickr -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-  // Date: ISO
-  flatpickr("#reservationDate",{dateFormat:"Y-m-d",minDate:"today"});
-  // Time: AM/PM visible
-  flatpickr("#reservationTime",{enableTime:true,noCalendar:true,dateFormat:"h:i K",time_24hr:false});
-</script>
-
-<script>
-  // ------- Timeline (idempotent render) -------
-  const resChannel = new BroadcastChannel("reservations");
-  resChannel.onmessage = (event)=>{
-    const msg=event.data;
-    if(msg?.type==="update" && msg.from!==TAB_ID){
-      loadTimelineHoursWithReservations();
+  document.addEventListener("DOMContentLoaded", () => {
+    // Try Flatpickr; if not present, fall back to native pickers
+    if (window.flatpickr) {
+      flatpickr("#reservationDate",{dateFormat:"Y-m-d",minDate:"today"});
+      flatpickr("#reservationTime",{enableTime:true,noCalendar:true,dateFormat:"h:i K",time_24hr:false});
+    } else {
+      const d = document.getElementById("reservationDate");
+      const t = document.getElementById("reservationTime");
+      if (d) d.setAttribute("type","date");
+      if (t) t.setAttribute("type","time");
     }
-  };
-
-  let TL_RENDER_TOKEN = 0;
-
-  function formatHour(h){
-    if(h===24||h===0) return "12 AM";
-    if(h===12) return "12 PM";
-    const ampm=h>12?"PM":"AM";
-    const h12=h>12? h-12 : h;
-    return `${h12} ${ampm}`;
-  }
-
-  function getAllReservations(){
-    return new Promise((resolve)=>{
-      const req=indexedDB.open("SalonDB",1);
-      req.onerror=()=>resolve([]);
-      req.onsuccess=(ev)=>{
-        const db=ev.target.result;
-        const tx=db.transaction("reservations","readonly");
-        const store=tx.objectStore("reservations");
-        const ga=store.getAll();
-        ga.onsuccess=()=>resolve(ga.result||[]);
-        ga.onerror=()=>resolve([]);
-      };
-    });
-  }
-
-  async function loadTimelineHoursWithReservations(){
-    const myToken=++TL_RENDER_TOKEN;
-
-    // fetch first – avoids flicker and lets us abort outdated renders
-    const reservations=await getAllReservations();
-    if(myToken!==TL_RENDER_TOKEN) return;
-
-    const timeline=document.getElementById("timelineHours");
-    if(!timeline) return;
-
-    // fresh grid
-    timeline.innerHTML="";
-    for(let hour=8; hour<=24; hour++){
-      const block=document.createElement("div");
-      block.className="hour-block";
-      block.setAttribute("data-hour",hour);
-      const label=document.createElement("strong");
-      label.className="time-label";
-      label.textContent=formatHour(hour);
-      block.appendChild(label);
-      timeline.appendChild(block);
-    }
-
-    // paint cards (with per-card share icon)
-reservations.forEach(res => {
-  const h24  = res.time24 || to24h(res.time || "00:00");
-  const hour = parseInt(h24.split(":")[0], 10);
-  const block = timeline.querySelector(`.hour-block[data-hour="${hour}"]`);
-  if (!block) return;
-
-  const subj = `Reservation — ${res.clientName || "Client"} on ${res.date} at ${res.time || h24}`;
-  const body =
-    `Client: ${res.clientName || ""}\n` +
-    `Phone: ${res.phone || ""}\n` +
-    `Service: ${res.service || ""}\n` +
-    `Date: ${res.date || ""}\n` +
-    `Time: ${res.time || h24}\n\n` +
-    `— Sent from Sista Sista Salon & Spa system`;
-  const mailto = `mailto:?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
-
-  const card = document.createElement("div");
-  card.className = "reservation-card";
-  card.innerHTML = `
-    <strong>${res.clientName || "Unnamed Client"}</strong>
-    <a href="${mailto}" class="share-one" title="Share via email" style="margin-left:8px;">
-      <i class="fas fa-envelope" style="color:#000"></i>
-    </a><br>
-    <i class="fas fa-phone"></i> ${res.phone || ""}<br>
-    <i class="fas fa-calendar"></i> ${res.date || ""} at ${res.time || h24}<br>
-    <i class="fas fa-scissors"></i> ${res.service || ""}
-  `;
-  block.appendChild(card);
-});
-
-  }
-
-  // initial render
-  loadTimelineHoursWithReservations();
+  });
 </script>
-
-<script>
-  (function () {
-    const btn = document.getElementById("shareTodayBtn");
-    if (!btn) return;
-
-    function buildBodyFromDOM() {
-      // Read what’s already on the page
-      const cards = Array.from(document.querySelectorAll("#timelineHours .reservation-card"));
-      if (!cards.length) return "";
-
-      const lines = cards.map((card, i) => {
-        const name = card.querySelector("strong")?.textContent?.trim() || "Unnamed Client";
-        const phone = (card.innerHTML.match(/fa-phone"><\/i>\s*([^<]+)/)?.[1] || "").trim();
-        const dateTime = (card.innerHTML.match(/fa-calendar"><\/i>\s*([^<]+)/)?.[1] || "").trim();
-        const service = (card.innerHTML.match(/fa-scissors"><\/i>\s*([^<]+)/)?.[1] || "").trim();
-        return `${i + 1}. ${dateTime} — ${name} (${phone}) — ${service}`;
-      });
-
-      return lines.join("\n");
-    }
-
-    btn.addEventListener("click", function () {
-      // Prefer the date the user picked in the form, else today
-      const dateStr =
-        document.getElementById("reservationDate")?.value ||
-        new Date().toISOString().slice(0, 10);
-
-      const bodyLines = buildBodyFromDOM();
-      if (!bodyLines) {
-        // Fall back to the DB-driven toast if nothing is on screen
-        if (typeof showToast === "function") showToast("No reservations to share on the screen.");
-        return;
-      }
-
-      const subject = `Reservations for ${dateStr} — Sista Sista Salon & Spa`;
-      const body = `Hello,\n\nHere are the reservations for ${dateStr}:\n\n${bodyLines}\n\n— Sent from Sista Sista Salon & Spa system`;
-
-      // Synchronous mailto (best chance of not being blocked)
-      const href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      const a = document.createElement("a");
-      a.href = href;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    });
-  })();
-</script>
-
-
 </body>
 </html>

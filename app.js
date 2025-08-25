@@ -1,9 +1,12 @@
 console.log("📦 app.js is loading...");
 
-// Initialize IndexedDB
+// =========================
+// IndexedDB Setup
+// =========================
 let db;
 let visitChart;
 const request = indexedDB.open("SalonDB", 1);
+
 request.onerror = function (e) {
   console.error("❌ IndexedDB failed to open:", e.target.error);
   alert("Failed to open database: " + e.target.error.message);
@@ -28,6 +31,7 @@ request.onupgradeneeded = function (e) {
 request.onsuccess = function (e) {
   db = e.target.result;
 
+  // If you ever wrap the modal fields in a <form id="addClientForm">
   document.getElementById("addClientForm")?.addEventListener("submit", function (e) {
     e.preventDefault();
     addClient();
@@ -37,6 +41,7 @@ request.onsuccess = function (e) {
   checkUpcomingReservations();
   setInterval(() => checkUpcomingReservations(), 5 * 60 * 1000);
 
+  // Seed services store if empty (optional)
   const tx = db.transaction("services", "readonly");
   const store = tx.objectStore("services");
   const countRequest = store.count();
@@ -45,6 +50,17 @@ request.onsuccess = function (e) {
     loadClients();
     updateDashboardStatsFromClients();
   };
+
+  // Cross-tab updates
+  if (typeof BroadcastChannel !== "undefined") {
+    const dashCh = new BroadcastChannel("dashboardChannel");
+    dashCh.onmessage = (msg) => {
+      if (msg === "update") {
+        loadClients();
+        updateDashboardStatsFromClients();
+      }
+    };
+  }
 };
 
 /* =========================
@@ -141,35 +157,58 @@ function updateRevenueTrend(db) {
 }
 
 /* =========================
-   Add Client
+   Services helpers (multi-select)
+   ========================= */
+function getSelectedServices() {
+  const checks = document.querySelectorAll('#clientServicesGroup input[type="checkbox"]:checked');
+  return Array.from(checks).map(cb => cb.value.trim()).filter(Boolean);
+}
+
+function clearSelectedServices() {
+  document.querySelectorAll('#clientServicesGroup input[type="checkbox"]').forEach(cb => cb.checked = false);
+}
+
+/* =========================
+   Add Client (multi-service) — FIXED
    ========================= */
 function addClient() {
-  const name = document.getElementById("clientName").value.trim();
-  const phone = document.getElementById("clientPhone").value.trim();
-  const gender = document.getElementById("clientGender").value;
-  const service = document.getElementById("clientService").value;
-  const amount = document.getElementById("clientAmount").value.trim();
-  const time = document.getElementById("clientTime").value.trim();
-  const staff = document.getElementById("clientStaff")?.value.trim() || "";   // ✅ NEW
+  if (!db) {
+    showToast("Database is initialising. Please try again in a moment.");
+    return;
+  }
+
+  const name = document.getElementById("clientName")?.value.trim() || "";
+  const phone = document.getElementById("clientPhone")?.value.trim() || "";
+  const gender = document.getElementById("clientGender")?.value || "";
+  const services = getSelectedServices(); // ← array from checkboxes
+  const amount = document.getElementById("clientAmount")?.value.trim() || "";
+  const time = document.getElementById("clientTime")?.value.trim() || "";
+  const staff = document.getElementById("clientStaff")?.value.trim() || "";
   const photoInput = document.getElementById("clientPhoto");
-  const dateInput = document.getElementById("clientDate").value;
+  const dateInput = document.getElementById("clientDate")?.value || "";
   const date = dateInput || localDateStr(); // local day
   const paymentMethod = document.getElementById("clientPaymentMethod")?.value || "Cash";
 
-  // include staff in required fields
-  if (!name || !phone || !gender || !service || !time || !staff) {
-    showToast("Please fill in all required fields.");
+  // require at least one service since UI is multi-select
+  if (!name || !phone || !gender || services.length === 0 || !time || !staff) {
+    showToast("Please fill in all required fields (including at least one service).");
     return;
   }
 
   const reader = new FileReader();
   reader.onload = function () {
-    const photoData = reader.result;
+    const photoData = reader.result || "";
     const client = {
-      name, phone, gender, service,
-      amount, date, time, photoData,
+      name,
+      phone,
+      gender,
+      services,                 // ← stored as array
+      amount,
+      date,
+      time,
+      photoData,
       paymentMethod,
-      staff                        // ✅ save staff
+      staff
     };
 
     const tx = db.transaction("clients", "readwrite");
@@ -178,35 +217,45 @@ function addClient() {
 
     tx.oncomplete = () => {
       loadClients();
-      renderClientList();
-      updateClientStats();
       updateDashboardStatsFromClients();
       document.getElementById("addClientModal").style.display = "none";
+      clearSelectedServices();
+
+      // Clear inputs
+      document.getElementById("clientName").value = "";
+      document.getElementById("clientPhone").value = "";
+      document.getElementById("clientGender").value = "";
+      document.getElementById("clientAmount").value = "";
+      document.getElementById("clientPaymentMethod").value = "";
+      document.getElementById("clientDate").value = "";
+      document.getElementById("clientTime").value = "";
+      document.getElementById("clientStaff").value = "";
+      if (photoInput) photoInput.value = "";
+
       if (typeof BroadcastChannel !== "undefined") {
         new BroadcastChannel("dashboardChannel").postMessage("update");
       }
       showToast("Client saved successfully!");
-      if (typeof BroadcastChannel !== "undefined") {
-        new BroadcastChannel("dashboardChannel").postMessage("update");
-      }
-      document.getElementById("addClientForm")?.reset();
     };
   };
 
-  if (photoInput.files.length > 0) {
+  if (photoInput?.files?.length > 0) {
     reader.readAsDataURL(photoInput.files[0]);
   } else {
+    // trigger onload with empty data (no photo chosen)
     reader.onload({ target: { result: "" } });
   }
 }
 
+// expose for inline onclick in HTML
+window.addClient = addClient;
 
 /* =========================
    Load Clients into Table
    ========================= */
 function loadClients() {
   const tableBody = document.querySelector("#clientsTable tbody");
-  const searchValue = document.getElementById("clientSearchInput")?.value.toLowerCase() || "";
+  const searchValue = (document.getElementById("clientSearchInput")?.value || "").toLowerCase();
   const selectedService = document.getElementById("serviceFilter")?.value || "";
   if (!tableBody) return;
   tableBody.innerHTML = "";
@@ -219,27 +268,35 @@ function loadClients() {
     const cursor = e.target.result;
     if (cursor) {
       const client = cursor.value;
+      const servicesArray = Array.isArray(client.services)
+        ? client.services
+        : (client.service ? [client.service] : []); // backward compat
+      const servicesText = servicesArray.join(", ");
+
       const matchesSearch =
         !searchValue ||
         client.name.toLowerCase().includes(searchValue) ||
         client.phone.toLowerCase().includes(searchValue) ||
-        client.service.toLowerCase().includes(searchValue) ||
+        servicesText.toLowerCase().includes(searchValue) ||
         (client.staff || "").toLowerCase().includes(searchValue);
-      const matchesService = selectedService === "" || client.service === selectedService;
+
+      const matchesService =
+        selectedService === "" || servicesArray.includes(selectedService);
 
       if (matchesSearch && matchesService) {
-        clients.push(client);
+        clients.push({ ...client, servicesArray });
+
         const row = document.createElement("tr");
         row.innerHTML = `
           <td>${client.name}</td>
           <td>${client.phone}</td>
           <td>${client.gender}</td>
-          <td><img src="${client.photoData}" alt="photo" style="width:40px;height:40px;border-radius:50%;cursor:pointer;" onclick="openFullImage(this.src)" /></td>
-          <td>${client.service}</td>
+          <td><img src="${client.photoData || ""}" alt="photo" style="width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer;" onclick="openFullImage(this.src)" /></td>
+          <td>${servicesText || "-"}</td>
           <td>${client.date}</td>
           <td>${client.time}</td>
           <td>${client.staff || "-"}</td>
-          <td class="admin-only">${client.amount}</td>
+          <td class="admin-only">${client.amount || ""}</td>
           <td class="admin-only">${client.paymentMethod || "-"}</td>
           <td class="admin-only"><button onclick="deleteClient('${client.phone}')">Delete</button></td>`;
         tableBody.appendChild(row);
@@ -286,7 +343,7 @@ function updateDashboardStatsFromClients() {
   let todayVisits = 0;
   let revenue = 0;
   let todaySales = 0;
-  const services = new Set();
+  const servicesSet = new Set();
   const uniqueClients = new Set();
   const weekly = Array(7).fill(0);
 
@@ -298,7 +355,8 @@ function updateDashboardStatsFromClients() {
       const key = `${c.name}_${c.phone}`;
       uniqueClients.add(key);
 
-      if (c.service) services.add(c.service);
+      const arr = Array.isArray(c.services) ? c.services : (c.service ? [c.service] : []);
+      arr.forEach(s => s && servicesSet.add(s));
 
       if (c.date === todayStr) {
         todayVisits++;
@@ -325,7 +383,7 @@ function updateDashboardStatsFromClients() {
       if (elTodaysVisits)      elTodaysVisits.textContent      = todayVisits;
       if (elMonthlyRevenue)    elMonthlyRevenue.textContent    = `GHS ${revenue.toFixed(2)}`;
       if (elDailyRevenue)      elDailyRevenue.textContent      = `GHS ${todaySales.toFixed(2)}`;
-      if (elAvailableServices) elAvailableServices.textContent = services.size;
+      if (elAvailableServices) elAvailableServices.textContent = servicesSet.size;
 
       if (typeof Chart !== "undefined") {
         const ctx = document.getElementById("visitTrendChart")?.getContext("2d");
@@ -396,12 +454,65 @@ function showToast(message) {
 }
 
 /* =========================
-   Stubs
+   CSV Export
+   ========================= */
+function exportClientsCSV() {
+  const headers = [
+    "Name","Phone","Gender","Services","Date","Time","Staff","Amount","Payment"
+  ];
+  const rows = [];
+
+  const tx = db.transaction("clients", "readonly");
+  const store = tx.objectStore("clients");
+
+  store.openCursor().onsuccess = function (e) {
+    const cursor = e.target.result;
+    if (cursor) {
+      const c = cursor.value;
+      const servicesText = Array.isArray(c.services)
+        ? c.services.join("; ")
+        : (c.service || "");
+      rows.push([
+        c.name || "",
+        c.phone || "",
+        c.gender || "",
+        servicesText,
+        c.date || "",
+        c.time || "",
+        c.staff || "",
+        c.amount || "",
+        c.paymentMethod || ""
+      ]);
+      cursor.continue();
+    } else {
+      // Build CSV
+      const escapeCSV = (val) => {
+        const s = String(val ?? "");
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s;
+      };
+      const csv = [headers.map(escapeCSV).join(",")]
+        .concat(rows.map(r => r.map(escapeCSV).join(",")))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "sista_sista_clients.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+}
+
+/* =========================
+   Optional stubs
    ========================= */
 function renderClientList() {}
 function updateClientStats() {}
-function exportClientsCSV() {}
-function exportClientsPDF() {}
+function exportClientsPDF() {} // inline implementation lives in clients.html
 function seedServices() {}
 
 /* =========================
@@ -491,7 +602,7 @@ function checkUpcomingReservations() {
       const name = r.clientName || r.ClientName || "Unnamed Client";
       const time = r.time || "--:--";
       const date = r.date || "";
-      const service = r.service || "No service";
+      const service = r.service || (Array.isArray(r.services) ? r.services.join(", ") : "No service");
 
       const ts = Number.isFinite(r.timestamp)
         ? r.timestamp
@@ -589,7 +700,7 @@ function formatReservationLine(r, i){
   const t = r.time || r.time24 || "";
   const name = decodeAmp(r.clientName || "Unnamed Client");
   const phone = decodeAmp(r.phone || "");
-  const svc = decodeAmp(r.service || "");
+  const svc = Array.isArray(r.services) ? r.services.join(", ") : (r.service || "");
   return `${i}. ${r.date} ${t} — ${name} (${phone}) — ${svc}`;
 }
 
@@ -653,7 +764,7 @@ async function loadTimelineHoursWithReservations(){
 
     const clientName = decodeAmp(res.clientName || "Unnamed Client");
     const phone      = decodeAmp(res.phone || "");
-    const svc        = decodeAmp(res.service || "");
+    const svc        = Array.isArray(res.services) ? res.services.join(", ") : (res.service || "");
 
     const subj = `Reservation — ${clientName} on ${res.date} at ${res.time || h24}`;
     const body =
