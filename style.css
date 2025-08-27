@@ -843,3 +843,47 @@ select {
 body.dark-mode .share-one i {
   color: #fff;   /* switch to white in dark mode */
 }
+
+/* Override blue default button/link styles to black/white */
+button, 
+.btn, 
+input[type="submit"], 
+input[type="button"] {
+  background-color: #000 !important; /* black */
+  color: #fff !important;            /* white text */
+  border: none !important;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* Hover effect */
+button:hover, 
+.btn:hover, 
+input[type="submit"]:hover, 
+input[type="button"]:hover {
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+/* Delete button specifically */
+.delete-btn, 
+button.delete-btn {
+  background-color: #000 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.delete-btn:hover {
+  background-color: #444 !important;
+}
+
+/* Black accents for form controls */
+input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #000; /* modern CSS property */
+}
