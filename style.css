@@ -844,46 +844,49 @@ body.dark-mode .share-one i {
   color: #fff;   /* switch to white in dark mode */
 }
 
-/* Override blue default button/link styles to black/white */
-button, 
-.btn, 
-input[type="submit"], 
-input[type="button"] {
-  background-color: #000 !important; /* black */
-  color: #fff !important;            /* white text */
+/* Force summary cards to black theme */
+.summary-card {
+  background: #000 !important;
+  color: #fff !important;
+  border: 1px solid #000 !important;
+}
+.summary-card:hover {
+  background: #222 !important;
+  border-color: #000 !important;
+}
+
+/* Dark mode for cards */
+body.dark .summary-card {
+  background: #fff !important;
+  color: #000 !important;
+  border: 1px solid #fff !important;
+}
+body.dark .summary-card:hover {
+  background: #eaeaea !important;
+  border-color: #fff !important;
+}
+
+/* Delete buttons to match black/white theme */
+.delete-btn,
+.admin-only .delete-btn,
+.clients-table .delete-btn {
+  background: #000 !important;
+  color: #fff !important;
   border: none !important;
-  border-radius: 6px;
   padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
 }
-
-/* Hover effect */
-button:hover, 
-.btn:hover, 
-input[type="submit"]:hover, 
-input[type="button"]:hover {
-  background-color: #333 !important;
-  color: #fff !important;
-}
-
-/* Delete button specifically */
-.delete-btn, 
-button.delete-btn {
-  background-color: #000 !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 6px;
-  padding: 4px 10px;
-  font-size: 13px;
-  cursor: pointer;
-}
 .delete-btn:hover {
-  background-color: #444 !important;
+  background: #333 !important;
 }
 
-/* Black accents for form controls */
-input[type="radio"],
-input[type="checkbox"] {
-  accent-color: #000; /* modern CSS property */
+/* Dark mode delete */
+body.dark .delete-btn {
+  background: #fff !important;
+  color: #000 !important;
+}
+body.dark .delete-btn:hover {
+  background: #ddd !important;
 }
