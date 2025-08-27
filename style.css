@@ -844,49 +844,90 @@ body.dark-mode .share-one i {
   color: #fff;   /* switch to white in dark mode */
 }
 
-/* Force summary cards to black theme */
-.summary-card {
-  background: #000 !important;
-  color: #fff !important;
-  border: 1px solid #000 !important;
+/* ==== Sista Sista: neutral black/white theme overrides ==== */
+
+/* brand tokens */
+:root{
+  --brand:#000;
+  --card-bg:#fff;
+  --card-fg:#111;
+  --card-border:#e6e6e6;
+  --chip-bg:#000;
+  --chip-fg:#fff;
 }
-.summary-card:hover {
-  background: #222 !important;
-  border-color: #000 !important;
+body.dark{
+  --card-bg:#222;        /* charcoal card in dark mode */
+  --card-fg:#eaeaea;
+  --card-border:#333;
 }
 
-/* Dark mode for cards */
-body.dark .summary-card {
-  background: #fff !important;
-  color: #000 !important;
-  border: 1px solid #fff !important;
+/* Summary cards (light = white, dark = charcoal) */
+.summary-card{
+  background:var(--card-bg) !important;
+  color:var(--card-fg) !important;
+  border:1px solid var(--card-border) !important;
+  box-shadow:0 1px 6px rgba(0,0,0,.08);
 }
-body.dark .summary-card:hover {
-  background: #eaeaea !important;
-  border-color: #fff !important;
+.summary-card i,
+.summary-card h3,
+.summary-card p{ color:inherit !important; }
+
+/* Table header */
+.clients-table th{
+  background:#000 !important;
+  color:#fff !important;
+}
+body.dark .clients-table th{
+  background:#151515 !important;
+  color:#eaeaea !important;
 }
 
-/* Delete buttons to match black/white theme */
+/* Inputs & selects in dark mode */
+body.dark input[type="text"],
+body.dark input[type="search"],
+body.dark select{
+  background:#1c1c1c !important;
+  color:#eee !important;
+  border:1px solid #3a3a3a !important;
+}
+
+/* Black radio / checkbox accents */
+input[type="radio"],
+input[type="checkbox"]{
+  accent-color:#000;     /* iOS & modern browsers */
+}
+
+/* Primary buttons (Add / Export / Print) */
+.btn{
+  background:#000 !important;
+  color:#fff !important;
+  border:1px solid #000 !important;
+}
+.btn:hover{ filter:brightness(0.9); }
+
+/* Delete pill button in Actions column */
 .delete-btn,
-.admin-only .delete-btn,
-.clients-table .delete-btn {
-  background: #000 !important;
-  color: #fff !important;
-  border: none !important;
-  padding: 6px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 14px;
+button.delete,
+#clientsTable .admin-only button{
+  background:#000 !important;
+  color:#fff !important;
+  border:1px solid #000 !important;
+  border-radius:8px !important;
+  padding:6px 10px !important;
+  line-height:1 !important;
 }
-.delete-btn:hover {
-  background: #333 !important;
+.delete-btn:hover,
+button.delete:hover{ filter:brightness(0.9); }
+
+/* Tiny action chips (if any) */
+.badge, .chip{
+  background:var(--chip-bg) !important;
+  color:var(--chip-fg) !important;
+  border-color:var(--chip-bg) !important;
 }
 
-/* Dark mode delete */
-body.dark .delete-btn {
-  background: #fff !important;
-  color: #000 !important;
-}
-body.dark .delete-btn:hover {
-  background: #ddd !important;
-}
+/* Keep cards’ hover outline subtle */
+.summary-card:hover{ border-color:#000 !important; }
+
+/* Service filter dropdown width tweak (optional) */
+#serviceFilter{ min-width: 180px; }
