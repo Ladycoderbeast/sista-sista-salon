@@ -8,334 +8,347 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
-  
+
   <style>
-    .services-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-top: 20px;
-    }
+    .services-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:18px}
+    .service-card{background:#fff;padding:18px;border-radius:12px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+    .service-card h3{margin:0 0 10px;font-size:20px}
+    .service-list{list-style:disc;margin:0;padding-left:20px}
+    .service-item{display:flex;align-items:center;gap:8px;margin:6px 0}
+    .service-name{flex:1;line-height:1.3}
+    .icon-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px}
+    .icon-btn:hover{background:#f2f2f2}
+    .add-row{display:flex;gap:8px;margin-top:12px}
+    .add-row input{flex:1;padding:8px;border-radius:8px;border:1px solid #ddd}
+    .add-row button{padding:8px 12px}
 
-    .service-card {
-      background-color: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      transition: background-color 0.3s ease;
-    }
+    .ro-note{font-size:12px;color:#777;margin-top:8px}
+    .toast-message{visibility:hidden;min-width:200px;background:#333;color:#fff;text-align:center;border-radius:8px;padding:14px;position:fixed;z-index:9999;left:50%;transform:translateX(-50%);bottom:30px;font-size:14px;opacity:0;transition:opacity .35s,bottom .35s}
+    .toast-message.show{visibility:visible;opacity:1;bottom:60px}
 
-    .service-card h3 {
-      margin-bottom: 12px;
-      font-size: 20px;
-      color: #000000;
-    }
+    body.dark .service-card{background:#1f1f1f;color:#f7f7f7;box-shadow:0 2px 6px rgba(255,255,255,.05)}
+    body.dark .icon-btn:hover{background:#2a2a2a}
+    body.dark .add-row input{background:#161616;color:#f1f1f1;border-color:#333}
 
-    .service-card ul {
-      padding-left: 20px;
-      margin: 0;
-    }
-
-    .service-card ul li {
-      margin-bottom: 6px;
-      font-size: 15px;
-    }
-
-    body.dark .service-card {
-      background-color: #1e1e1e;
-      color: #f0f0f0;
-      box-shadow: 0 2px 6px rgba(255,255,255,0.05);
-    }
-
-    body.dark .service-card h3 {
-      color: #ffffff;
-    }
-
-   .user-profile {
-      position: relative;
-      display: inline-block;
-      margin-top: 8px;
-      margin-right: 50px;
-      margin-left: 30px;
-    }
-
-    .user-icon {
-      cursor: pointer;
-      color: #000;
-    }
-
-    .user-dropdown {
-      display: none;
-      position: absolute;
-      background-color: white;
-      min-width: 50px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-      z-index: 1;
-      border-radius: 8px;
-      padding: 10px;
-    }
-
-    body.dark .user-dropdown {
-      background-color: #444;
-      color: #fff;
-    }
-
+    .user-profile { position: relative; display: inline-block; margin-top: 8px; margin-right: 50px; margin-left: 30px; }
+    .user-icon { cursor: pointer; color: #000; }
+    .user-dropdown { display: none; position: absolute; background-color: white; min-width: 50px; box-shadow: 0 3px 6px rgba(0,0,0,0.2); z-index: 1; border-radius: 8px; padding: 10px; }
+    body.dark .user-dropdown { background-color: #444; color: #fff; }
   </style>
 </head>
 <body>
-  <script>
-  const user = JSON.parse(localStorage.getItem("loggedUser"));
-  if (!user || !user.role) {
-    // Not logged in, redirect to login page
-    window.location.href = "index.html";
-  }
+<script>
+  // Require login
+  const _user = JSON.parse(localStorage.getItem("loggedUser"));
+  if(!_user || !_user.role){ window.location.href = "index.html"; }
 </script>
 
+<div class="dashboard-container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
+      <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
+      <a href="services.html" class="active"><i class="fas fa-scissors"></i> Services</a>
+      <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
+      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
+      <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
+      <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
+      <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
+      <a href="index.html"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </nav>
+  </aside>
 
-  <div class="dashboard-container">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-logo">
-        <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="dashboard-header">
+      <div class="theme-toggle-wrapper">
+        <span>Dark Theme</span>
+        <label class="theme-switch">
+          <input type="checkbox" id="toggleDark" />
+          <span class="slider"></span>
+        </label>
       </div>
-      <nav class="sidebar-nav">
-        <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
-        <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
-        <a href="services.html" class="active"><i class="fas fa-scissors"></i> Services</a>
-        <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
-        <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
-        <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
-        <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
-        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
-        <a href="index.html" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
-      </nav>
-    </aside>
-
-    <!-- Main Content -->
-     <main class="main-content">
-      <div class="dashboard-header">
-        <div class="theme-toggle-wrapper">
-          <span>Dark Theme</span>
-          <label class="theme-switch">
-            <input type="checkbox" id="toggleDark" />
-            <span class="slider"></span>
-          </label>
+      <div class="user-profile">
+        <div class="user-icon" id="userIcon">
+          <i class="fas fa-user-circle fa-2x"></i>
         </div>
-        <div class="user-profile">
-          <div class="user-icon" id="userIcon">
-            <i class="fas fa-user-circle fa-2x"></i>
+        <div class="user-dropdown" id="userDropdown">
+          <p id="loggedInUser">Loading...</p>
+          <button onclick="logout()" style="margin-top:10px;background:#000;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+      <h2>Services</h2>
+
+      <!-- Admin-only: quick add category -->
+      <div id="newCategoryBox" style="display:none;margin:10px 0 6px;">
+        <details>
+          <summary style="cursor:pointer;font-weight:600">Add a new category</summary>
+          <div class="add-row" style="margin-top:10px">
+            <input id="newCategoryName" type="text" placeholder="Category name e.g. Lashes" />
+            <input id="newCategoryService" type="text" placeholder="First service (optional)" />
+            <button class="btn" id="addCategoryBtn" type="button">Add Category</button>
           </div>
-          <div class="user-dropdown" id="userDropdown">
-  <p id="loggedInUser">Loading...</p>
-  <button onclick="logout()" style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+        </details>
+      </div>
+
+      <div id="servicesGrid" class="services-grid"><!-- filled by JS --></div>
+      <div id="staffNote" class="ro-note" style="display:none">Read-only mode: staff cannot add or delete services.</div>
+    </div>
+  </main>
 </div>
-        </div>
-      </div>
 
+<!-- Footer -->
+<div class="app-footer">
+  &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+  Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+</div>
 
-      <div class="dashboard-body">
-        <h2>Services</h2>
+<!-- Tiny toast -->
+<div id="toast" class="toast-message"></div>
 
-        <div class="services-grid">
-          <div class="service-card">
-            <h3>Natural Hair</h3>
-            <ul>
-              <li>Shampoo & Conrow</li>
-              <li>Detangling Shampoo Blowout</li>
-              <li>Natural Ponytail Hair No Silk Press</li>
-              <li>Silk Press</li>
-              <li>Conditioning Treatment</li>
-              <li>Dandruff Treatment</li>
-              <li>Olapex Breakage Treatment</li>
-              <li>K18 Treatment</li>
-              <li>Wig sew in(closure)</li>
-              <li>Wig sew in(frontal)</li>
-              <li>Wig revamp(shampooing+curling)</li>
-              <li>Wig revamp(shampooing+straight)</li>
-              <li>Wig install (frontal) sticking</li>
-              <li>Relax cut & style(pixie)</li>
-              <li>Shampoo & style(short hair)</li>
-              <li>Wig straightening or curling of weaves</li>
-            </ul>
-            </div>
+<!-- Keep user icon behavior -->
+<script src="user-icon.js"></script>
 
-          <div class="service-card">
-            <h3>Relaxed Hair</h3>
-            <ul>
-              <li>Shampoo+Blow Drying+Straightening</li>
-              <li>Shampoo+roller setting</li>
-              <li>Shampoo & Conrows</li>
-              <li>Relaxer+blowdrying+<br>straightening</br>(salon cream)one</li>
-              <li>Relaxer+Rollerset one & half(salon cream)</li>
-              <li>Relaxer+blowdrying+<br>straightening</br>one & half</li>
-              <li>Relaxer two (salon cream)</li>
-              <li>Relaxer+blowouts one & half(salon cream)</li>
-              <li>Relaxer+roller setting(personal cream)</li>
-              <li>Relaxer+blowdrying+<br>straightening</br>(personal cream)</br></li>
-              <li>Own relaxer without shampoo & conditioner</li>
-              <li>Extra</li>
-              <li>Trimming</li>
-              <li>Cutting</li>
-              <li>Other Con-rows</li>
-              <li>Conditioning treatment</li>
-              <li>Dandruff treatment</li>
-              <li>Olaplex Breakage treatment</li>
-              <li>K18 Treatment</li>
-              <li>Traditional sew in</li>
-              <li>Closure sew in</li>
-              <li>Tracks glue</li>
-              <li>Tracks sew in</li>
-              <li>Relaxed hair ponytail </li>
-              <li>Relaxer front & back</li>
-            </ul>
-          </div>
+<script>
+/* ============== Role + Theme ============== */
+const role = (_user?.role || "").toString().trim().toLowerCase();
+const isAdmin = role === "admin";
+document.getElementById("newCategoryBox").style.display = isAdmin ? "block" : "none";
+document.getElementById("staffNote").style.display = !isAdmin ? "block" : "none";
 
-          <div class="service-card">
-            <h3>Nails</h3>
-            <ul>
-    <li>Pedicure & No polish</li>
-    <li>Pedicure & Regular polish</li>
-    <li>Pedicure & Gel polish</li>
-    <li>Pedicure & Acrylic on toes</li>
-    <li>Pedicure & stick on</li>
-    <li>Pedicure stick on & French</li>
-    <li>Extra for French tips</li>
-    <li>Jelly Pedicure & Gel polish</li>
-    <li>Pedicure Men</li>
-    <li>Manicure</li>
-    <li>Regular Polish</li>
-    <li>Basic Gel polish</li>
-    <li>BIAB / Structured Gel polish</li>
-    <li>Hard Gel + Gel polish</li>
-    <li>Acrylic Full nails</li>
-    <li>Acrylic nails on toes</li>
-    <li>Acrylic on toes refill</li>
-    <li>Acrylic refill (did full set with us)</li>
-    <li>Acrylic refill ( did not do full set with us)</li>
-    <li>Stick on/ Gel polish</li>
-    <li>Dissolving</li>
-    <li>Dissolving + Manicure</li>
-            </ul>
-          </div>
-
-          <div class="service-card">
-            <h3>Waxing</h3>
-            <ul>
-              <li>Eyebrow Wax</li>
-              <li>Chin Wax</li>
-              <li>Chest Wax</li>
-              <li>Eyebrow shaping</li>
-              <li>Upper lip</li>
-              <li>Under arm</li>
-              <li>Stomach</li>
-              <li>Full arm</li>
-              <li>Half arm</li>
-              <li>Half Legs</li>
-              <li>Full leg</li>
-              <li>Bikini area</li>
-              <li>Full Face</li>
-              <li>Hollywood wax</li>
-              </ul>
-          </div>
-
-          <div class="service-card">
-            <h3>Spa</h3>
-    <li>Hot stone massage 1hr</li>
-    <li>Hot stone massage 1hr 30mins</li>
-    <li>Deep tissue massage 30mins</li>
-    <li>Deep tissue massage 1hr</li>
-    <li>Deep tissue massage 1hr 30mins</li>
-    <li>Swedish massage 30mins</li>
-    <li>Swedish massage 1hr</li>
-    <li>Swedish massage 1hr 30mins</li>
-    <li>Body Scrub</li>
-    <li>Steam Therapy</li>
-    <li>Back Treatment</li>
-    <li>Facials Deep cleanse</li>
-    <li>Facials Deep cleanse (upgrade)</li>
-    <li>Facials Rejuvenation</li>
-    <li>Facials Anti acne</li>
-    <li>Facials Dermplane (Extra)</li>
-          </ul>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Footer -->
-  <div class="app-footer">
-    &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
-    Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
-  </div>
-
-  <script src="app.js"></script>
-
-  <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const userIcon = document.querySelector('.user-icon');
-    const userPopup = document.getElementById('userPopup');
-    const username = localStorage.getItem('loggedInUser');
-
-    if (username && userPopup) {
-      userPopup.textContent = username;
-
-      userIcon.addEventListener('click', () => {
-        userPopup.style.display = userPopup.style.display === 'block' ? 'none' : 'block';
-      });
-
-      document.addEventListener('click', (e) => {
-        if (!userIcon.contains(e.target) && !userPopup.contains(e.target)) {
-          userPopup.style.display = 'none';
-        }
-      });
-    }
+const darkToggle = document.getElementById("toggleDark");
+if (darkToggle){
+  const saved = localStorage.getItem("theme");
+  if (saved === "dark"){ document.body.classList.add("dark"); darkToggle.checked = true; }
+  darkToggle.addEventListener("change", ()=>{
+    document.body.classList.toggle("dark", darkToggle.checked);
+    localStorage.setItem("theme", darkToggle.checked ? "dark" : "light");
   });
+}
 
-  document.addEventListener("DOMContentLoaded", () => {
-  const predefinedServices = [
-    { category: "Natural Hair", services: ["Wash and blow dry", "Twists", "Cornrows", "Silk Press", "Wash and Treatment", "Loc Styling", "Loc Maintenance"] },
-    { category: "Relaxed Hair", services: ["Wash and Set", "Treatment", "Relaxer", "Texturizer", "Retouch", "Trim"] },
-    { category: "Nails", services: ["Acrylic Tips", "Manicure", "Pedicure", "Gel Polish", "Nail Art"] },
-    { category: "Waxing", services: ["Eyebrow Wax", "Underarm Wax", "Leg Wax", "Bikini Wax", "Full Body Wax"] },
-    { category: "Spa", services: ["Facial", "Body Massage", "Body Scrub", "Steam Therapy", "Back Treatment"] }
-  ];
+function logout(){
+  sessionStorage.removeItem("sista_session");
+  localStorage.removeItem("role");
+  localStorage.removeItem("username");
+  localStorage.removeItem("loggedUser");
+  window.location.replace("index.html");
+}
 
-  const request = indexedDB.open("SalonDB", 1);
-  request.onsuccess = function (e) {
-    const db = e.target.result;
-    const tx = db.transaction("services", "readwrite");
-    const store = tx.objectStore("services");
+function showToast(msg){
+  const t = document.getElementById("toast");
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2200);
+}
 
-    predefinedServices.forEach(group => {
-      group.services.forEach(name => {
-        const service = { category: group.category, name };
-        store.add(service);
-      });
+/* ============== DB + Seed ============== */
+let SDB;
+const DEFAULT_CATEGORIES = [
+  {category:"Natural Hair", services:[
+    "Shampoo & Conrow","Detangling Shampoo Blowout","Natural Ponytail Hair No Silk Press","Silk Press",
+    "Conditioning Treatment","Dandruff Treatment","Olapex Breakage Treatment","K18 Treatment",
+    "Wig sew in(closure)","Wig sew in(frontal)","Wig revamp(shampooing+curling)","Wig revamp(shampooing+straight)",
+    "Wig install ( frontal) sticking","Relax cut & style( pixie)","Shampoo & style (short hair)","Wig straightening or curling of weaves"
+  ]},
+  {category:"Relaxed Hair", services:[
+    "Shampoo+Blow Drying+Straightening","Shampoo+roller setting","Shampoo & Conrows",
+    "Relaxer+blowdrying+straightening(salon cream)one","Relaxer+Rollerset one & half(salon cream)",
+    "Relaxer+blowdrying+straightening one & half","Relaxer two (salon cream)","Relaxer+blowouts one & half(salon cream)",
+    "Relaxer+roller setting(personal cream)","Relaxer+blowdrying+straightening(personal cream)",
+    "Own relaxer without shampoo & conditioner","Extra","Trimming","Cutting","Other Con-rows",
+    "Conditioning treatment","Dandruff treatment","Olaplex Breakage treatment","K18 Treatment",
+    "Traditional sew in","Closure sew in","Tracks glue","Tracks sew in","Relaxed hair ponytail","Relaxer front & back"
+  ]},
+  {category:"Nails", services:[
+    "Pedicure & No polish","Pedicure + Regular polish","Pedicure + Gel polish","Pedicure + Acrylic on toes",
+    "Pedicure + stick on","Pedicure stick on + French","Extra for French tips","Jelly Pedicure & Gel polish",
+    "Pedicure men","Manicure","Regular Polish","Basic Gel polish","BIAB / Structured Gel polish","Hard Gel + Gel polish",
+    "Acrylic Full nails","Acrylic nails on toes","Acrylic on toes refill","Acrylic refill (did full set with us)",
+    "Acrylic refill ( did not do full set with us)","Stick on/ Gel polish","Dissolving","Dissolving + Manicure"
+  ]},
+  {category:"Waxing", services:[
+    "Eyebrow Wax","Chin Wax","Chest Wax","Eyebrow shaping","Upper lip","Under arm","Stomach",
+    "Full arm","Half arm","Half Legs","Full leg","Bikini area","Full Face","Hollywood wax"
+  ]},
+  {category:"Spa", services:[
+    "Hot stone massage 1hr","Hot stone massage 1hr 30mins","Deep tissue massage 30mins","Deep tissue massage 1hr",
+    "Deep tissue massage 1hr 30mins","Swedish massage 30mins","Swedish massage 1hr","Swedish massage 1hr 30mins",
+    "Body Scrub","Steam Therapy","Back Treatment","Facials Deep cleanse","Facials Deep cleanse (upgrade)",
+    "Facials Rejuvenation","Facials Anti acne","Facials Dermplane (Extra)"
+  ]}
+];
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req = indexedDB.open("SalonDB",1);
+    req.onerror = e => { console.error("IDB open error", e); reject(e.target.error); };
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("clients")) db.createObjectStore("clients",{keyPath:"id",autoIncrement:true});
+      if(!db.objectStoreNames.contains("visits")) db.createObjectStore("visits",{keyPath:"id",autoIncrement:true});
+      if(!db.objectStoreNames.contains("reservations")) db.createObjectStore("reservations",{keyPath:"id",autoIncrement:true});
+      if(!db.objectStoreNames.contains("services")) db.createObjectStore("services",{keyPath:"id",autoIncrement:true});
+    };
+    req.onsuccess = e => resolve(e.target.result);
+  });
+}
+
+async function seedIfEmpty(){
+  const tx = SDB.transaction("services","readonly");
+  const st = tx.objectStore("services");
+  const count = await new Promise(res=>{ const c=st.count(); c.onsuccess=()=>res(c.result||0); c.onerror=()=>res(0); });
+  if(count>0) return;
+
+  const wtx = SDB.transaction("services","readwrite");
+  const wst = wtx.objectStore("services");
+  DEFAULT_CATEGORIES.forEach(g => g.services.forEach(name => wst.add({category:g.category, name})));
+  return new Promise(res => { wtx.oncomplete = ()=>res(); });
+}
+
+/* ============== Render ============== */
+function getAllServices(){
+  return new Promise(res=>{
+    const arr=[];
+    const tx = SDB.transaction("services","readonly");
+    tx.objectStore("services").openCursor().onsuccess = e=>{
+      const cur = e.target.result;
+      if(cur){ arr.push(cur.value); cur.continue(); } else { res(arr); }
+    };
+  });
+}
+
+const CATEGORY_ORDER = ["Natural Hair","Relaxed Hair","Nails","Waxing","Spa"];
+function ordered(keys){
+  const rest = keys.filter(k=>!CATEGORY_ORDER.includes(k)).sort((a,b)=>a.localeCompare(b));
+  return CATEGORY_ORDER.filter(k=>keys.includes(k)).concat(rest);
+}
+
+async function render(){
+  const grid = document.getElementById("servicesGrid");
+  grid.innerHTML = "";
+
+  let all;
+  try { all = await getAllServices(); }
+  catch (e){ console.error(e); all = []; }
+
+  const byCat = {};
+  all.forEach(s => { (byCat[s.category] ??= []).push(s); });
+
+  const cats = ordered(Object.keys(byCat));
+  if(cats.length === 0){
+    const empty = document.createElement("div");
+    empty.textContent = "No services yet. Add a category or services to get started.";
+    empty.className = "ro-note";
+    grid.appendChild(empty);
+    return;
+  }
+
+  cats.forEach(cat=>{
+    const card = document.createElement("div");
+    card.className = "service-card";
+
+    const h = document.createElement("h3");
+    h.textContent = cat;
+    card.appendChild(h);
+
+    const ul = document.createElement("ul");
+    ul.className = "service-list";
+
+    (byCat[cat]||[]).forEach(svc=>{
+      const li = document.createElement("li");
+      li.className = "service-item";
+      li.innerHTML = `
+        <span class="service-name">${svc.name}</span>
+        ${isAdmin ? `<button class="icon-btn" title="Delete" onclick="deleteService(${svc.id})"><i class="fas fa-trash"></i></button>` : ``}
+      `;
+      ul.appendChild(li);
     });
 
-    tx.oncomplete = () => console.log("Services saved to IndexedDB.");
-    tx.onerror = e => console.error("Error saving services:", e.target.error);
+    card.appendChild(ul);
+
+    if(isAdmin){
+      const addRow = document.createElement("div");
+      addRow.className = "add-row";
+      addRow.innerHTML = `
+        <input type="text" placeholder="Add a new service…" />
+        <button class="btn" type="button">Add</button>
+      `;
+      const input = addRow.querySelector("input");
+      addRow.querySelector("button").addEventListener("click", ()=> addService(cat, input.value.trim(), input));
+      card.appendChild(addRow);
+    }
+
+    grid.appendChild(card);
+  });
+}
+
+/* ============== Actions ============== */
+function addService(category, name, inputEl){
+  if(!name) return;
+  const tx = SDB.transaction("services","readwrite");
+  tx.objectStore("services").add({category, name});
+  tx.oncomplete = ()=>{
+    inputEl && (inputEl.value = "");
+    showToast("Service added");
+    render();
+    svcChannel?.postMessage({type:"servicesUpdated"});
+  };
+}
+
+function deleteService(id){
+  const tx = SDB.transaction("services","readwrite");
+  tx.objectStore("services").delete(Number(id));
+  tx.oncomplete = ()=>{
+    showToast("Service deleted");
+    render();
+    svcChannel?.postMessage({type:"servicesUpdated"});
+  };
+}
+window.deleteService = deleteService;
+
+document.getElementById("addCategoryBtn")?.addEventListener("click", ()=>{
+  const cat = document.getElementById("newCategoryName").value.trim();
+  const first = document.getElementById("newCategoryService").value.trim();
+  if(!cat){ alert("Enter a category name"); return; }
+  const tx = SDB.transaction("services","readwrite");
+  const st = tx.objectStore("services");
+  if(first) st.add({category:cat, name:first});
+  tx.oncomplete = ()=>{
+    document.getElementById("newCategoryName").value="";
+    document.getElementById("newCategoryService").value="";
+    showToast("Category added");
+    render();
+    svcChannel?.postMessage({type:"servicesUpdated"});
   };
 });
 
-</script>
-<script>
-  function logout() {
-    // kill the session used by auth.js
-    sessionStorage.removeItem("sista_session");
+/* ============== Cross-tab sync ============== */
+let svcChannel;
+if(typeof BroadcastChannel !== "undefined"){
+  svcChannel = new BroadcastChannel("services");
+  svcChannel.onmessage = (e)=>{ if(e.data?.type==="servicesUpdated") render(); };
+}
 
-    // keep your existing clears
-    localStorage.removeItem("role");
-    localStorage.removeItem("username");
-    localStorage.removeItem("loggedUser");
-
-    // redirect (prevents back-nav into protected page)
-    window.location.replace("index.html");
+/* ============== Init ============== */
+(async function init(){
+  try{
+    SDB = await openDB();
+    await seedIfEmpty();
+    await render();
+  }catch(e){
+    console.error("Services page failed to init:", e);
+    const grid = document.getElementById("servicesGrid");
+    grid.innerHTML = `<div class="ro-note">Could not load services. Please reload the page.</div>`;
   }
+})();
 </script>
-
-
-<script src="user-icon.js"></script>
 </body>
 </html>

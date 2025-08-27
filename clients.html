@@ -29,6 +29,8 @@
     .client-list { max-height: 60vh; overflow-y: auto; }
 
     .toast { visibility: hidden; min-width: 200px; margin-left: -100px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 9999; left: 50%; bottom: 30px; font-size: 16px; opacity: 0; transition: opacity 0.5s ease-in-out, bottom 0.5s ease-in-out; }
+    .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+
     .summary-cards { margin-top: 40px; display:grid; grid-template-columns: repeat(5,minmax(180px,1fr)); gap:14px; }
     .summary-card { display:flex; gap:12px; align-items:center; padding:16px; border-radius:14px; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.06); cursor:pointer; border:1px solid transparent; }
     .summary-card:hover { border-color:#000; }
@@ -36,10 +38,7 @@
     .summary-card h3 { margin:0; }
     .summary-card p { margin:0; opacity:.7; }
 
-    .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
-
     #imageModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
-
     .main-content { width: 100%; overflow-x: hidden; padding: 1rem; box-sizing: border-box; }
     .table-wrapper { overflow-x: auto; width: 100%; }
 
@@ -128,7 +127,7 @@
     <div class="clients-wrapper">
       <button type="button" class="btn" onclick="openAddClientModal()">Add New Client</button>
       <div class="client-list">
-        <!-- B) Tiny scope switch (Today / All) + Clear -->
+        <!-- Tiny scope switch (Today / All) + Clear -->
         <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 6px;">
           <div id="clientsScopeSwitch" style="display:flex; gap:12px; align-items:center;">
             <label><input type="radio" name="clientsScope" id="clientsScopeToday" value="today"> Today</label>
@@ -142,7 +141,7 @@
           <input type="text" id="clientSearchInput" placeholder="Search by name, phone, service or staff..." style="padding: 8px; flex: 1; min-width: 200px;" />
           <select id="serviceFilter" style="padding: 8px;">
             <option value="">All Services</option>
-            <!-- auto-filled from the checklist -->
+            <!-- dynamically filled -->
           </select>
           <button onclick="exportClientsCSV()" class="btn">Export CSV</button>
           <button onclick="exportClientsPDF()" class="btn">Export PDF</button>
@@ -194,121 +193,10 @@
       <option value="Male">Male</option>
     </select>
 
-    <!-- Grouped services as checkboxes (multi-select) -->
+    <!-- Services (dynamic; falls back to default if DB empty) -->
     <label style="display:block;margin:10px 0 6px;font-weight:600;">Services (pick one or more)</label>
     <div id="clientServicesGroup" class="services-checklist" role="group" aria-label="Services">
-      <details open>
-        <summary>Natural Hair</summary>
-        <label><input type="checkbox" value="Shampoo & Conrow"> Shampoo & Conrow</label>
-        <label><input type="checkbox" value="Detangling Shampoo Blowout"> Detangling Shampoo Blowout</label>
-        <label><input type="checkbox" value="Natural Ponytail Hair No Silk Press"> Natural Ponytail Hair No Silk Press</label>
-        <label><input type="checkbox" value="Silk Press"> Silk Press</label>
-        <label><input type="checkbox" value="Conditioning Treatment"> Conditioning Treatment</label>
-        <label><input type="checkbox" value="Dandruff Treatment"> Dandruff Treatment</label>
-        <label><input type="checkbox" value="Olapex Breakage Treatment"> Olapex Breakage Treatment</label>
-        <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
-        <label><input type="checkbox" value="Wig sew in(closure)"> Wig sew in(closure)</label>
-        <label><input type="checkbox" value="Wig sew in(frontal)"> Wig sew in(frontal)</label>
-        <label><input type="checkbox" value="Wig revamp(shampooing+curling)"> Wig revamp(shampooing+curling)</label>
-        <label><input type="checkbox" value="Wig revamp(shampooing+straight)"> Wig revamp(shampooing+straight)</label>
-        <label><input type="checkbox" value="Wig install ( frontal) sticking)"> Wig install ( frontal) sticking</label>
-        <label><input type="checkbox" value="Relax cut & style( pixie)"> Relax cut & style( pixie)</label>
-        <label><input type="checkbox" value="Shampoo & style (short hair)"> Shampoo & style (short hair)</label>
-        <label><input type="checkbox" value="Wig straightening or curling of weaves"> Wig straightening or curling of weaves</label>
-      </details>
-
-      <details>
-        <summary>Relaxed Hair</summary>
-        <label><input type="checkbox" value="Shampoo+Blow Drying+Straightening"> Shampoo+Blow Drying+Straightening</label>
-        <label><input type="checkbox" value="Shampoo+roller setting"> Shampoo+roller setting</label>
-        <label><input type="checkbox" value="Shampoo & Conrows"> Shampoo & Conrows</label>
-        <label><input type="checkbox" value="Relaxer+blowdrying+straightening(salon cream)one"> Relaxer+blowdrying+straightening(salon cream)one</label>
-        <label><input type="checkbox" value="Relaxer+Rollerset one & half(salon cream)"> Relaxer+Rollerset one & half(salon cream)</label>
-        <label><input type="checkbox" value="Relaxer+blowdrying+straightening one & half"> Relaxer+blowdrying+straightening one & half</label>
-        <label><input type="checkbox" value="Relaxer two (salon cream)"> Relaxer two (salon cream)</label>
-        <label><input type="checkbox" value="Relaxer+blowouts one & half(salon cream)"> Relaxer+blowouts one & half(salon cream)</label>
-        <label><input type="checkbox" value="Relaxer+roller setting(personal cream)"> Relaxer+roller setting(personal cream)</label>
-        <label><input type="checkbox" value="Relaxer+blowdrying+straightening(personal cream)"> Relaxer+blowdrying+straightening(personal cream)</label>
-        <label><input type="checkbox" value="Own relaxer without shampoo & conditioner"> Own relaxer without shampoo & conditioner</label>
-        <label><input type="checkbox" value="Extra"> Extra</label>
-        <label><input type="checkbox" value="Trimming"> Trimming</label>
-        <label><input type="checkbox" value="Cutting"> Cutting</label>
-        <label><input type="checkbox" value="Other Con-rows"> Other Con-rows</label>
-        <label><input type="checkbox" value="Conditioning treatment"> Conditioning treatment</label>
-        <label><input type="checkbox" value="Dandruff treatment"> Dandruff treatment</label>
-        <label><input type="checkbox" value="Olaplex Breakage treatment"> Olaplex Breakage treatment</label>
-        <label><input type="checkbox" value="K18 Treatment"> K18 Treatment</label>
-        <label><input type="checkbox" value="Traditional sew in"> Traditional sew in</label>
-        <label><input type="checkbox" value="Closure sew in"> Closure sew in</label>
-        <label><input type="checkbox" value="Tracks glue"> Tracks glue</label>
-        <label><input type="checkbox" value="Tracks sew in"> Tracks sew in</label>
-        <label><input type="checkbox" value="Relaxed hair ponytail"> Relaxed hair ponytail </label>
-        <label><input type="checkbox" value="Relaxer front & back"> Relaxer front & back</label>
-      </details>
-
-      <details>
-        <summary>Nails</summary>
-        <label><input type="checkbox" value="Pedicure & No polish"> Pedicure & No polish</label>
-        <label><input type="checkbox" value="Pedicure + Regular polish"> Pedicure + Regular polish</label>
-        <label><input type="checkbox" value="Pedicure + Gel polish"> Pedicure + Gel polish</label>
-        <label><input type="checkbox" value="Pedicure + Acrylic on toes"> Pedicure + Acrylic on toes</label>
-        <label><input type="checkbox" value="Pedicure + stick on"> Pedicure + stick on</label>
-        <label><input type="checkbox" value="Pedicure stick on + French"> Pedicure stick on + French</label>
-        <label><input type="checkbox" value="Extra for French tips"> Extra for French tips</label>
-        <label><input type="checkbox" value="Jelly Pedicure & Gel polish"> Jelly Pedicure & Gel polish</label>
-        <label><input type="checkbox" value="Pedicure men"> Pedicure men</label>
-        <label><input type="checkbox" value="Manicure"> Manicure</label>
-        <label><input type="checkbox" value="Regular Polish"> Regular Polish</label>
-        <label><input type="checkbox" value="Basic Gel polish"> Basic Gel polish</label>
-        <label><input type="checkbox" value="BIAB / Structured Gel polish"> BIAB / Structured Gel polish</label>
-        <label><input type="checkbox" value="Hard Gel + Gel polish"> Hard Gel + Gel polish</label>
-        <label><input type="checkbox" value="Acrylic Full nails"> Acrylic Full nails</label>
-        <label><input type="checkbox" value="Acrylic nails on toes"> Acrylic nails on toes</label>
-        <label><input type="checkbox" value="Acrylic on toes refill"> Acrylic on toes refill</label>
-        <label><input type="checkbox" value="Acrylic refill (did full set with us)"> Acrylic refill (did full set with us)</label>
-        <label><input type="checkbox" value="Acrylic refill ( did not do full set with us)"> Acrylic refill ( did not do full set with us)</label>
-        <label><input type="checkbox" value="Stick on/ Gel polish"> Stick on/ Gel polish</label>
-        <label><input type="checkbox" value="Dissolving"> Dissolving</label>
-        <label><input type="checkbox" value="Dissolving + Manicure"> Dissolving + Manicure</label>
-      </details>
-
-      <details>
-        <summary>Waxing</summary>
-        <label><input type="checkbox" value="Eyebrow Wax"> Eyebrow Wax</label>
-        <label><input type="checkbox" value="Chin Wax"> Chin Wax</label>
-        <label><input type="checkbox" value="Chest Wax"> Chest Wax</label>
-        <label><input type="checkbox" value="Eyebrow shaping"> Eyebrow shaping</label>
-        <label><input type="checkbox" value="Upper lip"> Upper lip</label>
-        <label><input type="checkbox" value="Under arm"> Under arm</label>
-        <label><input type="checkbox" value="Stomach"> Stomach</label>
-        <label><input type="checkbox" value="Full arm"> Full arm</label>
-        <label><input type="checkbox" value="Half arm"> Half arm</label>
-        <label><input type="checkbox" value="Half Legs"> Half Legs</label>
-        <label><input type="checkbox" value="Full leg"> Full leg</label>
-        <label><input type="checkbox" value="Bikini area"> Bikini area</label>
-        <label><input type="checkbox" value="Full Face"> Full Face</label>
-        <label><input type="checkbox" value="Hollywood wax"> Hollywood wax</label>
-      </details>
-
-      <details>
-        <summary>Spa</summary>
-        <label><input type="checkbox" value="Hot stone massage 1hr"> Hot stone massage 1hr</label>
-        <label><input type="checkbox" value="Hot stone massage 1hr 30mins"> Hot stone massage 1hr 30mins</label>
-        <label><input type="checkbox" value="Deep tissue massage 30mins"> Deep tissue massage 30mins</label>
-        <label><input type="checkbox" value="Deep tissue massage 1hr"> Deep tissue massage 1hr</label>
-        <label><input type="checkbox" value="Deep tissue massage 1hr 30mins"> Deep tissue massage 1hr 30mins</label>
-        <label><input type="checkbox" value="Swedish massage 30mins"> Swedish massage 30mins</label>
-        <label><input type="checkbox" value="Swedish massage 1hr"> Swedish massage 1hr</label>
-        <label><input type="checkbox" value="Swedish massage 1hr 30mins"> Swedish massage 1hr 30mins</label>
-        <label><input type="checkbox" value="Body Scrub"> Body Scrub</label>
-        <label><input type="checkbox" value="Steam Therapy"> Steam Therapy</label>
-        <label><input type="checkbox" value="Back Treatment"> Back Treatment</label>
-        <label><input type="checkbox" value="Facials Deep cleanse"> Facials Deep cleanse</label>
-        <label><input type="checkbox" value="Facials Deep cleanse (upgrade)"> Facials Deep cleanse (upgrade)</label>
-        <label><input type="checkbox" value="Facials Rejuvenation"> Facials Rejuvenation</label>
-        <label><input type="checkbox" value="Facials Anti acne"> Facials Anti acne</label>
-        <label><input type="checkbox" value="Facials Dermplane (Extra)"> Facials Dermplane (Extra)</label>
-      </details>
+      <!-- Fallback will be injected by JS if DB has nothing -->
     </div>
 
     <input type="file" id="clientPhoto" accept="image/*" />
@@ -354,15 +242,10 @@
     const rows = [];
     const headers = [];
 
-    table.querySelectorAll("thead th").forEach(th => {
-      headers.push(th.innerText.trim());
-    });
-
+    table.querySelectorAll("thead th").forEach(th => headers.push(th.innerText.trim()));
     table.querySelectorAll("tbody tr").forEach(row => {
       const rowData = [];
-      row.querySelectorAll("td").forEach(td => {
-        rowData.push(td.innerText.trim());
-      });
+      row.querySelectorAll("td").forEach(td => rowData.push(td.innerText.trim()));
       rows.push(rowData);
     });
 
@@ -407,20 +290,125 @@
   flatpickr("#clientDate", { dateFormat: "Y-m-d" });
   flatpickr("#clientTime", { enableTime: true, noCalendar: true, dateFormat: "h:i K", time_24hr: false });
 
-  // Build the Service Filter list from the checklist once DOM is ready
-  (function buildServiceFilter() {
-    const allCheckboxes = Array.from(
-      document.querySelectorAll('#clientServicesGroup input[type="checkbox"]')
-    );
-    const names = [...new Set(allCheckboxes.map(cb => cb.value))].sort((a,b)=>a.localeCompare(b));
-    const sel = document.getElementById("serviceFilter");
-    names.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      sel.appendChild(opt);
+  /**
+   * DYNAMIC SERVICES LOADER (safe for dashboard/reports)
+   * - Reads `services` store: { id, category, name }
+   * - Builds the checklist + the service filter
+   * - Falls back to DEFAULT_SERVICES if DB is empty
+   * - Refreshes when Services page broadcasts "servicesChanged"
+   */
+  const DEFAULT_SERVICES = [
+    {category:"Natural Hair", items:[
+      "Shampoo & Conrow","Detangling Shampoo Blowout","Natural Ponytail Hair No Silk Press","Silk Press","Conditioning Treatment","Dandruff Treatment","Olapex Breakage Treatment","K18 Treatment","Wig sew in(closure)","Wig sew in(frontal)","Wig revamp(shampooing+curling)","Wig revamp(shampooing+straight)","Wig install ( frontal) sticking","Relax cut & style( pixie)","Shampoo & style (short hair)","Wig straightening or curling of weaves"
+    ]},
+    {category:"Relaxed Hair", items:[
+      "Shampoo+Blow Drying+Straightening","Shampoo+roller setting","Shampoo & Conrows","Relaxer+blowdrying+straightening(salon cream)one","Relaxer+Rollerset one & half(salon cream)","Relaxer+blowdrying+straightening one & half","Relaxer two (salon cream)","Relaxer+blowouts one & half(salon cream)","Relaxer+roller setting(personal cream)","Relaxer+blowdrying+straightening(personal cream)","Own relaxer without shampoo & conditioner","Extra","Trimming","Cutting","Other Con-rows","Conditioning treatment","Dandruff treatment","Olaplex Breakage treatment","K18 Treatment","Traditional sew in","Closure sew in","Tracks glue","Tracks sew in","Relaxed hair ponytail","Relaxer front & back"
+    ]},
+    {category:"Nails", items:[
+      "Pedicure & No polish","Pedicure + Regular polish","Pedicure + Gel polish","Pedicure + Acrylic on toes","Pedicure + stick on","Pedicure stick on + French","Extra for French tips","Jelly Pedicure & Gel polish","Pedicure men","Manicure","Regular Polish","Basic Gel polish","BIAB / Structured Gel polish","Hard Gel + Gel polish","Acrylic Full nails","Acrylic nails on toes","Acrylic on toes refill","Acrylic refill (did full set with us)","Acrylic refill ( did not do full set with us)","Stick on/ Gel polish","Dissolving","Dissolving + Manicure"
+    ]},
+    {category:"Waxing", items:[
+      "Eyebrow Wax","Chin Wax","Chest Wax","Eyebrow shaping","Upper lip","Under arm","Stomach","Full arm","Half arm","Half Legs","Full leg","Bikini area","Full Face","Hollywood wax"
+    ]},
+    {category:"Spa", items:[
+      "Hot stone massage 1hr","Hot stone massage 1hr 30mins","Deep tissue massage 30mins","Deep tissue massage 1hr","Deep tissue massage 1hr 30mins","Swedish massage 30mins","Swedish massage 1hr","Swedish massage 1hr 30mins","Body Scrub","Steam Therapy","Back Treatment","Facials Deep cleanse","Facials Deep cleanse (upgrade)","Facials Rejuvenation","Facials Anti acne","Facials Dermplane (Extra)"
+    ]}
+  ];
+
+  function groupServicesFromRows(rows){
+    const map = new Map();
+    rows.forEach(r=>{
+      const cat = (r.category || "Other").trim();
+      const name = (r.name || "").trim();
+      if(!name) return;
+      if(!map.has(cat)) map.set(cat, new Set());
+      map.get(cat).add(name);
     });
-  })();
+    // convert to array of {category, items:[]}
+    return Array.from(map.entries())
+      .map(([category,set]) => ({ category, items: Array.from(set).sort((a,b)=>a.localeCompare(b)) }))
+      .sort((a,b)=>a.category.localeCompare(b.category));
+  }
+
+  function renderChecklist(groups){
+    const wrap = document.getElementById("clientServicesGroup");
+    if(!wrap) return;
+    wrap.innerHTML = "";
+    groups.forEach(g=>{
+      const details = document.createElement("details");
+      details.open = true;
+      const summary = document.createElement("summary");
+      summary.textContent = g.category;
+      details.appendChild(summary);
+      g.items.forEach(name=>{
+        const label = document.createElement("label");
+        label.innerHTML = `<input type="checkbox" value="${name.replace(/"/g,'&quot;')}"> ${name}`;
+        details.appendChild(label);
+      });
+      wrap.appendChild(details);
+    });
+  }
+
+  function renderServiceFilter(groups){
+    const sel = document.getElementById("serviceFilter");
+    if(!sel) return;
+    const keepFirst = sel.querySelector("option[value='']"); // keep "All Services"
+    sel.innerHTML = "";
+    if (keepFirst) sel.appendChild(keepFirst);
+    const names = [];
+    groups.forEach(g => g.items.forEach(n => names.push(n)));
+    Array.from(new Set(names))
+      .sort((a,b)=>a.localeCompare(b))
+      .forEach(name=>{
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+      });
+  }
+
+  async function loadServicesFromDB(){
+    return new Promise(resolve=>{
+      const req = indexedDB.open("SalonDB", 1);
+      req.onerror = ()=> resolve([]);
+      req.onsuccess = e=>{
+        const _db = e.target.result;
+        if (!_db.objectStoreNames.contains("services")){
+          resolve([]); return;
+        }
+        const tx = _db.transaction("services","readonly");
+        const store = tx.objectStore("services");
+        const out = [];
+        store.openCursor().onsuccess = ev=>{
+          const c = ev.target.result;
+          if (c){ out.push(c.value); c.continue(); }
+          else resolve(out);
+        };
+        tx.onerror = ()=> resolve([]);
+      };
+    });
+  }
+
+  async function refreshServicesUI(){
+    const rows = await loadServicesFromDB();
+    let groups;
+    if (rows && rows.length){
+      groups = groupServicesFromRows(rows);
+    } else {
+      groups = DEFAULT_SERVICES;
+    }
+    renderChecklist(groups);
+    renderServiceFilter(groups);
+  }
+
+  // Initial load + listen for cross-page updates
+  window.addEventListener("DOMContentLoaded", refreshServicesUI);
+  if (typeof BroadcastChannel !== "undefined"){
+    const bc = new BroadcastChannel("servicesChanged");
+    bc.onmessage = (msg)=> {
+      if (msg?.type === "refresh-services") refreshServicesUI();
+    };
+  }
 </script>
 
 <!-- Page-local filtering (scope + clickable cards) -->
