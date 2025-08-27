@@ -931,3 +931,43 @@ button.delete:hover{ filter:brightness(0.9); }
 
 /* Service filter dropdown width tweak (optional) */
 #serviceFilter{ min-width: 180px; }
+
+/* --- Notification bell + badge --- */
+.notification-bell {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.notification-bell i {
+  font-size: 20px;
+  color: inherit;             /* bell icon follows the theme */
+}
+
+/* the red badge */
+.notification-bell .badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9px;
+
+  background: #e53935 !important;   /* always red */
+  color: #fff !important;            /* white text */
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* ring so it looks clean on any background */
+  box-shadow: 0 0 0 2px #fff;
+}
+
+/* keep the outer ring correct in dark mode */
+body.dark .notification-bell .badge {
+  box-shadow: 0 0 0 2px #111;
+}
