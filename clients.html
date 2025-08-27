@@ -29,7 +29,13 @@
     .client-list { max-height: 60vh; overflow-y: auto; }
 
     .toast { visibility: hidden; min-width: 200px; margin-left: -100px; background-color: #333; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 9999; left: 50%; bottom: 30px; font-size: 16px; opacity: 0; transition: opacity 0.5s ease-in-out, bottom 0.5s ease-in-out; }
-    .summary-cards { margin-top: 40px; }
+    .summary-cards { margin-top: 40px; display:grid; grid-template-columns: repeat(5,minmax(180px,1fr)); gap:14px; }
+    .summary-card { display:flex; gap:12px; align-items:center; padding:16px; border-radius:14px; background:#fff; box-shadow:0 1px 6px rgba(0,0,0,.06); cursor:pointer; border:1px solid transparent; }
+    .summary-card:hover { border-color:#000; }
+    .summary-card i { font-size:20px; }
+    .summary-card h3 { margin:0; }
+    .summary-card p { margin:0; opacity:.7; }
+
     .toast.show { visibility: visible; opacity: 1; bottom: 50px; }
 
     #imageModal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 9999; }
@@ -48,6 +54,9 @@
     .services-checklist details { margin: 6px 0; }
     .services-checklist summary { cursor: pointer; font-weight: 600; }
     .services-checklist label { display:block; margin:6px 0; }
+
+    /* small badge showing active filter */
+    #activeCardFilter { font-size:12px; opacity:.7; margin-left:6px; }
   </style>
 </head>
 
@@ -97,17 +106,38 @@
       </div>
     </div>
 
+    <!-- Summary cards (clickable) -->
     <div class="summary-cards" id="clientSummaryCards">
-      <div class="summary-card"><i class="fa fa-users"></i><div><h3 id="totalClientsCard">0</h3><p>Total Clients</p></div></div>
-      <div class="summary-card"><i class="fa fa-sync-alt"></i><div><h3 id="returningClients">0</h3><p>Returning Clients</p></div></div>
-      <div class="summary-card"><i class="fa fa-star"></i><div><h3 id="newClients">0</h3><p>New Clients</p></div></div>
-      <div class="summary-card"><i class="fa fa-female"></i><div><h3 id="femaleClients">0</h3><p>Female Clients</p></div></div>
-      <div class="summary-card"><i class="fa fa-male"></i><div><h3 id="maleClients">0</h3><p>Male Clients</p></div></div>
+      <button class="summary-card" data-card-filter="total" type="button">
+        <i class="fa fa-users"></i><div><h3 id="totalClientsCard">0</h3><p>Total Clients</p></div>
+      </button>
+      <button class="summary-card" data-card-filter="returning" type="button">
+        <i class="fa fa-sync-alt"></i><div><h3 id="returningClients">0</h3><p>Returning Clients</p></div>
+      </button>
+      <button class="summary-card" data-card-filter="new" type="button">
+        <i class="fa fa-star"></i><div><h3 id="newClients">0</h3><p>New Clients</p></div>
+      </button>
+      <button class="summary-card" data-card-filter="female" type="button">
+        <i class="fa fa-female"></i><div><h3 id="femaleClients">0</h3><p>Female Clients</p></div>
+      </button>
+      <button class="summary-card" data-card-filter="male" type="button">
+        <i class="fa fa-male"></i><div><h3 id="maleClients">0</h3><p>Male Clients</p></div>
+      </button>
     </div>
 
     <div class="clients-wrapper">
       <button type="button" class="btn" onclick="openAddClientModal()">Add New Client</button>
       <div class="client-list">
+        <!-- B) Tiny scope switch (Today / All) + Clear -->
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 6px;">
+          <div id="clientsScopeSwitch" style="display:flex; gap:12px; align-items:center;">
+            <label><input type="radio" name="clientsScope" id="clientsScopeToday" value="today"> Today</label>
+            <label><input type="radio" name="clientsScope" id="clientsScopeAll" value="all"> All</label>
+            <button id="clearCardFilter" type="button" class="btn" style="padding:6px 10px;">Clear</button>
+            <span id="activeCardFilter"></span>
+          </div>
+        </div>
+
         <div class="client-controls" style="margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
           <input type="text" id="clientSearchInput" placeholder="Search by name, phone, service or staff..." style="padding: 8px; flex: 1; min-width: 200px;" />
           <select id="serviceFilter" style="padding: 8px;">
@@ -181,7 +211,7 @@
         <label><input type="checkbox" value="Wig sew in(frontal)"> Wig sew in(frontal)</label>
         <label><input type="checkbox" value="Wig revamp(shampooing+curling)"> Wig revamp(shampooing+curling)</label>
         <label><input type="checkbox" value="Wig revamp(shampooing+straight)"> Wig revamp(shampooing+straight)</label>
-        <label><input type="checkbox" value="Wig install ( frontal) sticking"> Wig install ( frontal) sticking</label>
+        <label><input type="checkbox" value="Wig install ( frontal) sticking)"> Wig install ( frontal) sticking</label>
         <label><input type="checkbox" value="Relax cut & style( pixie)"> Relax cut & style( pixie)</label>
         <label><input type="checkbox" value="Shampoo & style (short hair)"> Shampoo & style (short hair)</label>
         <label><input type="checkbox" value="Wig straightening or curling of weaves"> Wig straightening or curling of weaves</label>
@@ -391,6 +421,114 @@
       sel.appendChild(opt);
     });
   })();
+</script>
+
+<!-- Page-local filtering (scope + clickable cards) -->
+<script>
+  // Helpers
+  function todayStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // State
+  let CLIENTS_SCOPE = 'today';     // 'today' | 'all'
+  let CARD_FILTER   = 'total';     // 'total' | 'returning' | 'new' | 'female' | 'male'
+
+  // Apply filters to the already-rendered table rows
+  function applyTableFilters() {
+    const tbody = document.querySelector('#clientsTable tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const isToday = (dateStr) => (CLIENTS_SCOPE === 'today' ? dateStr === todayStr() : true);
+
+    // Pre-count phones to detect returning/new in the current scope
+    const phoneCount = {};
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      const date = (tds[5]?.textContent || '').trim();
+      if (!isToday(date)) return;
+      const phone = (tds[1]?.textContent || '').trim();
+      phoneCount[phone] = (phoneCount[phone] || 0) + 1;
+    });
+
+    rows.forEach(tr => {
+      const tds = tr.querySelectorAll('td');
+      const gender = (tds[2]?.textContent || '').trim();
+      const date   = (tds[5]?.textContent || '').trim();
+      const phone  = (tds[1]?.textContent || '').trim();
+
+      let visible = true;
+
+      // Scope first
+      if (!isToday(date)) visible = false;
+
+      // Card filter
+      if (visible) {
+        switch (CARD_FILTER) {
+          case 'female': visible = (gender === 'Female'); break;
+          case 'male':   visible = (gender === 'Male');   break;
+          case 'new':    visible = (phoneCount[phone] === 1); break;
+          case 'returning': visible = (phoneCount[phone] > 1); break;
+          default: /* total */ break;
+        }
+      }
+
+      tr.style.display = visible ? '' : 'none';
+    });
+
+    // badge text
+    const badge = document.getElementById('activeCardFilter');
+    const label = CARD_FILTER.charAt(0).toUpperCase() + CARD_FILTER.slice(1);
+    badge.textContent = (CARD_FILTER === 'total' ? '' : `Filtered: ${label} (${CLIENTS_SCOPE})`);
+  }
+
+  // Re-apply after app.js populates table (and whenever search/filter changes)
+  const reapply = () => setTimeout(applyTableFilters, 0);
+
+  // Wire radios + clear
+  document.getElementById('clientsScopeToday')?.addEventListener('change', e => {
+    if (e.target.checked) { CLIENTS_SCOPE = 'today'; reapply(); }
+  });
+  document.getElementById('clientsScopeAll')?.addEventListener('change', e => {
+    if (e.target.checked) { CLIENTS_SCOPE = 'all'; reapply(); }
+  });
+  document.getElementById('clearCardFilter')?.addEventListener('click', () => {
+    CARD_FILTER = 'total';
+    document.getElementById('clientSearchInput').value = '';
+    document.getElementById('serviceFilter').value = '';
+    // default back to Today
+    document.getElementById('clientsScopeToday').checked = true;
+    CLIENTS_SCOPE = 'today';
+    reapply();
+  });
+
+  // Make cards clickable
+  document.querySelectorAll('.summary-card').forEach(btn => {
+    btn.addEventListener('click', () => {
+      CARD_FILTER = btn.getAttribute('data-card-filter') || 'total';
+      reapply();
+    });
+  });
+
+  // Also reapply when search/service filter changes (so hidden rows stay hidden)
+  document.getElementById('clientSearchInput')?.addEventListener('input', reapply);
+  document.getElementById('serviceFilter')?.addEventListener('change', reapply);
+
+  // Default selection: Today
+  window.addEventListener('DOMContentLoaded', () => {
+    const todayRadio = document.getElementById('clientsScopeToday');
+    if (todayRadio) todayRadio.checked = true;
+    // after app.js renders on page load, run one pass
+    setTimeout(applyTableFilters, 250);
+  });
+
+  // Re-apply again a moment later (covers slower IndexedDB renders)
+  window.addEventListener('load', () => setTimeout(applyTableFilters, 600));
 </script>
 
 </body>
