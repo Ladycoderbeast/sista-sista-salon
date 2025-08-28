@@ -972,43 +972,67 @@ body.dark .notification-bell .badge {
   box-shadow: 0 0 0 2px #111;
 }
 
-/* Center the modal and give it breathing room on small screens */
+/* === Clients: Add Client modal – consistent sizing + scroll === */
+
+/* Center the modal, give it a little gutter so content never touches edges */
 #addClientModal.modal {
-  display: none;                   /* stays hidden until opened */
+  display: none;                /* your JS toggles this to flex */
   align-items: center;
   justify-content: center;
-  padding: 16px;                   /* keeps card off the edges on mobile */
-  backdrop-filter: blur(2px);      /* subtle glassy overlay (optional) */
+  padding: 16px;                /* safe gutter on small screens */
+  height: 100vh;
 }
 
-/* The form card becomes a scroll container */
+/* iOS/Safari "dynamic viewport" fix so 100vh doesn't hide the bottom */
+@supports (height: 100dvh) {
+  #addClientModal.modal { height: 100dvh; }
+}
+
+/* The white card itself: make it scroll when tall */
 #addClientModal .form-card {
-  width: 520px;
-  max-width: 92vw;                 /* responsive width */
-  max-height: 90vh;                /* key: never taller than viewport */
-  overflow: auto;                  /* key: scroll the whole form when tall */
-  padding: 18px;
-  box-sizing: border-box;
+  width: min(640px, 92vw);      /* comfy on desktop, fits mobile */
+  max-height: 86vh;             /* keeps within screen */
+  overflow: auto;               /* <— the key: whole form scrolls */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-/* Nice spacing inside the card */
-#addClientModal .form-card h3 { margin: 4px 0 12px; }
-#addClientModal .form-card input,
-#addClientModal .form-card select,
-#addClientModal .form-card .services-checklist {
-  margin: 6px 0;
+/* Dark theme match */
+body.dark #addClientModal .form-card {
+  background: #222;
+  color: #fff;
+  border-color: #333;
 }
 
-/* Make Save/Cancel always easy to tap */
+/* Keep the title visible when you scroll long forms (nice UX) */
+#addClientModal .form-card h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  padding-top: 10px;
+  margin-top: -10px;   /* pulls the sticky header flush */
+  border-bottom: 1px solid #eee;
+}
+body.dark #addClientModal .form-card h3 {
+  background: #222;
+  border-bottom-color: #333;
+}
+
+/* Optional: still allow the services area to scroll on its own if opened huge */
+#addClientModal .services-checklist {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: #fafafa;
+}
+body.dark #addClientModal .services-checklist {
+  background: #2a2a2a; border-color: #444;
+}
+
+/* Buttons full-width and spaced nicely inside the scrolling card */
 #addClientModal .form-card .btn {
   width: 100%;
-  margin-top: 8px;
 }
-
-/* Optional: crisper scrollbars (WebKit) */
-#addClientModal .form-card::-webkit-scrollbar { width: 10px; }
-#addClientModal .form-card::-webkit-scrollbar-thumb { background: #cfcfcf; border-radius: 8px; }
-body.dark #addClientModal .form-card::-webkit-scrollbar-thumb { background: #444; }
-
-/* Prevent the page behind from scrolling when modal is open */
-body.modal-open { overflow: hidden; }
