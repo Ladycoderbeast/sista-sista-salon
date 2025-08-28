@@ -971,3 +971,44 @@ button.delete:hover{ filter:brightness(0.9); }
 body.dark .notification-bell .badge {
   box-shadow: 0 0 0 2px #111;
 }
+
+/* Center the modal and give it breathing room on small screens */
+#addClientModal.modal {
+  display: none;                   /* stays hidden until opened */
+  align-items: center;
+  justify-content: center;
+  padding: 16px;                   /* keeps card off the edges on mobile */
+  backdrop-filter: blur(2px);      /* subtle glassy overlay (optional) */
+}
+
+/* The form card becomes a scroll container */
+#addClientModal .form-card {
+  width: 520px;
+  max-width: 92vw;                 /* responsive width */
+  max-height: 90vh;                /* key: never taller than viewport */
+  overflow: auto;                  /* key: scroll the whole form when tall */
+  padding: 18px;
+  box-sizing: border-box;
+}
+
+/* Nice spacing inside the card */
+#addClientModal .form-card h3 { margin: 4px 0 12px; }
+#addClientModal .form-card input,
+#addClientModal .form-card select,
+#addClientModal .form-card .services-checklist {
+  margin: 6px 0;
+}
+
+/* Make Save/Cancel always easy to tap */
+#addClientModal .form-card .btn {
+  width: 100%;
+  margin-top: 8px;
+}
+
+/* Optional: crisper scrollbars (WebKit) */
+#addClientModal .form-card::-webkit-scrollbar { width: 10px; }
+#addClientModal .form-card::-webkit-scrollbar-thumb { background: #cfcfcf; border-radius: 8px; }
+body.dark #addClientModal .form-card::-webkit-scrollbar-thumb { background: #444; }
+
+/* Prevent the page behind from scrolling when modal is open */
+body.modal-open { overflow: hidden; }
