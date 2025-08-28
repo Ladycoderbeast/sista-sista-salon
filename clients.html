@@ -56,6 +56,42 @@
 
     /* small badge showing active filter */
     #activeCardFilter { font-size:12px; opacity:.7; margin-left:6px; }
+
+    /* Make the Add Client modal panel scrollable */
+#addClientModal {
+  padding: 16px;                 /* a little breathing room around the card */
+  align-items: center;           /* keep it centered vertically */
+  justify-content: center;       /* keep it centered horizontally */
+}
+
+#addClientModal .form-card {
+  max-height: 88vh;              /* never taller than the viewport */
+  overflow: auto;                /* scroll inside the card if it gets long */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keep the services list from eating all the height */
+#addClientModal .services-checklist {
+  max-height: 40vh;              /* scroll just the checklist when expanded */
+  overflow: auto;
+}
+
+/* Nice quality-of-life touches (optional) */
+#addClientModal .form-card h3 {
+  position: sticky; top: 0;
+  background: inherit;           /* matches light/dark card bg */
+  padding-bottom: 8px;
+  z-index: 1;
+}
+
+/* If you ever add a .form-actions wrapper, make it stick too */
+#addClientModal .form-actions {
+  position: sticky; bottom: 0;
+  background: inherit;
+  padding-top: 10px;
+}
+
   </style>
 </head>
 
