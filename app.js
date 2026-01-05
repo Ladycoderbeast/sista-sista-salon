@@ -253,9 +253,19 @@ window.addClient = addClient;
 /* =========================
    Load Clients into Table
    ========================= */
+   function normalizeSearchText(value = "") {
+  return String(value)
+    .toLowerCase()
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function loadClients() {
   const tableBody = document.querySelector("#clientsTable tbody");
-  const searchValue = (document.getElementById("clientSearchInput")?.value || "").toLowerCase();
+  const rawSearch = document.getElementById("clientSearchInput")?.value || "";
+const searchValue = normalizeSearchText(rawSearch);
+
   const selectedService = document.getElementById("serviceFilter")?.value || "";
   if (!tableBody) return;
   tableBody.innerHTML = "";
@@ -274,11 +284,12 @@ function loadClients() {
       const servicesText = servicesArray.join(", ");
 
       const matchesSearch =
-        !searchValue ||
-        client.name.toLowerCase().includes(searchValue) ||
-        client.phone.toLowerCase().includes(searchValue) ||
-        servicesText.toLowerCase().includes(searchValue) ||
-        (client.staff || "").toLowerCase().includes(searchValue);
+  !searchValue ||
+  normalizeSearchText(client.name).includes(searchValue) ||
+  normalizeSearchText(client.phone).includes(searchValue) ||
+  normalizeSearchText(servicesText).includes(searchValue) ||
+  normalizeSearchText(client.staff || "").includes(searchValue);
+
 
       const matchesService =
         selectedService === "" || servicesArray.includes(selectedService);

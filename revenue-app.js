@@ -13,7 +13,7 @@ request.onupgradeneeded = function (e) {
 
 request.onsuccess = function (e) {
   db = e.target.result;
-  updateRevenueSummary(); // Ensure this runs only after DB is ready
+  updateRevenueSummary();
 };
 
 request.onerror = function (e) {
@@ -36,22 +36,22 @@ function updateRevenueSummary() {
     const cursor = event.target.result;
     if (cursor) {
       const record = cursor.value;
-      if (record.amount && record.date) {
-  const [yearStr, monthStr, dayStr] = record.date.split("-");
-  const date = new Date(Number(yearStr), Number(monthStr) - 1, Number(dayStr));
-  const recordYear = date.getFullYear();
 
+      if (record.amount && record.date) {
+        const [y, m, d] = record.date.split("-");
+        const date = new Date(+y, m - 1, +d);
+        const recordYear = date.getFullYear();
 
         if (recordYear == year) {
-          const dayKey = date.toLocaleDateString("en-CA"); // ✅ local format YYYY-MM-DD
-
+          const dayKey = date.toISOString().split("T")[0];
           const weekKey = `${recordYear}-W${getWeekNumber(date)}`;
           const monthKey = `${recordYear}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
-          daily[dayKey] = (daily[dayKey] || 0) + parseFloat(record.amount);
-          weekly[weekKey] = (weekly[weekKey] || 0) + parseFloat(record.amount);
-          monthly[monthKey] = (monthly[monthKey] || 0) + parseFloat(record.amount);
-          yearlyTotal += parseFloat(record.amount);
+          daily[dayKey] = (daily[dayKey] || 0) + Number(record.amount);
+          weekly[weekKey] = (weekly[weekKey] || 0) + Number(record.amount);
+          monthly[monthKey] = (monthly[monthKey] || 0) + Number(record.amount);
+
+          yearlyTotal += Number(record.amount);
         }
       }
       cursor.continue();
@@ -63,21 +63,20 @@ function updateRevenueSummary() {
 }
 
 function updateRevenueTable(daily, weekly, monthly, yearlyTotal) {
-  const table = document.getElementById("revenueTable").getElementsByTagName("tbody")[0];
+  const tbody = document
+    .getElementById("revenueTable")
+    .getElementsByTagName("tbody")[0];
 
-  // Helper to get the latest date using actual date comparison
-  const getLatestValue = (obj) => {
-    const keys = Object.keys(obj);
-    if (keys.length === 0) return 0;
-    const latestKey = keys.sort((a, b) => new Date(b) - new Date(a))[0]; // newest date first
-    return obj[latestKey];
-  };
+  const todayKey = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const currentWeekKey = `${now.getFullYear()}-W${getWeekNumber(now)}`;
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  const dailyTotal = getLatestValue(daily);
-  const weeklyTotal = getLatestValue(weekly);
-  const monthlyTotal = getLatestValue(monthly);
+  const dailyTotal = daily[todayKey] || 0;
+  const weeklyTotal = weekly[currentWeekKey] || 0;
+  const monthlyTotal = monthly[currentMonthKey] || 0;
 
-  table.innerHTML = `
+  tbody.innerHTML = `
     <tr><td>Daily Revenue</td><td>GHS ${dailyTotal.toFixed(2)}</td></tr>
     <tr><td>Weekly Revenue</td><td>GHS ${weeklyTotal.toFixed(2)}</td></tr>
     <tr><td>Monthly Revenue</td><td>GHS ${monthlyTotal.toFixed(2)}</td></tr>
@@ -85,13 +84,10 @@ function updateRevenueTable(daily, weekly, monthly, yearlyTotal) {
   `;
 }
 
-
-
 function renderRevenueChart(daily, weekly, monthly, yearly, view) {
   const ctx = document.getElementById("monthlyRevenueChart").getContext("2d");
-  if (window.revenueChart) {
-    window.revenueChart.destroy();
-  }
+
+  if (window.revenueChart) window.revenueChart.destroy();
 
   let labels = [];
   let data = [];
@@ -120,25 +116,33 @@ function renderRevenueChart(daily, weekly, monthly, yearly, view) {
     data: {
       labels,
       datasets: [{
-        label: "GHS",
         data,
         backgroundColor: "#000",
-        borderRadius: 6,
+        borderRadius: 6
       }]
     },
     options: {
       responsive: true,
+      plugins: {
+        datalabels: {
+          anchor: "end",
+          align: "top",
+          formatter: v => `GHS ${v.toFixed(2)}`,
+          color: "#000",
+          font: { weight: "bold" }
+        },
+        legend: { display: false }
+      },
       scales: {
-        y: {
-          beginAtZero: true,
-        }
+        y: { beginAtZero: true }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
 function getWeekNumber(d) {
-  const date = new Date(d.getTime());
+  const date = new Date(d);
   date.setHours(0, 0, 0, 0);
   date.setDate(date.getDate() + 4 - (date.getDay() || 7));
   const yearStart = new Date(date.getFullYear(), 0, 1);
@@ -148,102 +152,29 @@ function getWeekNumber(d) {
 document.getElementById("yearSelect").addEventListener("change", updateRevenueSummary);
 document.getElementById("revenueView").addEventListener("change", updateRevenueSummary);
 
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("exportCSV").addEventListener("click", exportRevenueCSV);
+  document.getElementById("printButton").addEventListener("click", () => window.print());
+  document.getElementById("exportPDF").addEventListener("click", () => window.print());
+});
+
 function exportRevenueCSV() {
   const rows = [["Category", "Amount"]];
-  const table = document.getElementById("revenueTable").getElementsByTagName("tbody")[0];
+  const table = document.getElementById("revenueTable").querySelector("tbody");
+
   for (const row of table.rows) {
-    const cols = Array.from(row.cells).map(cell => cell.innerText);
-    rows.push(cols);
+    rows.push([...row.cells].map(c => c.innerText));
   }
 
-  rows.push([]); // Blank row
+  rows.push([]);
   rows.push(["Generated", new Date().toLocaleString()]);
 
-  const csvContent = rows.map(e => e.join(",")).join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  
+  const blob = new Blob([rows.map(r => r.join(",")).join("\n")], {
+    type: "text/csv;charset=utf-8;"
+  });
+
   const link = document.createElement("a");
-  link.href = url;
+  link.href = URL.createObjectURL(blob);
   link.download = "revenue-summary.csv";
   link.click();
 }
-
-function renderRevenueChart(daily, weekly, monthly, yearly, view) {
-  const ctx = document.getElementById("monthlyRevenueChart").getContext("2d");
-  if (window.revenueChart) {
-    window.revenueChart.destroy();
-  }
-
-  let labels = [];
-  let data = [];
-
-  switch (view) {
-    case "daily":
-      labels = Object.keys(daily);
-      data = Object.values(daily);
-      break;
-    case "weekly":
-      labels = Object.keys(weekly);
-      data = Object.values(weekly);
-      break;
-    case "monthly":
-      labels = Object.keys(monthly);
-      data = Object.values(monthly);
-      break;
-    case "yearly":
-      labels = ["Total"];
-      data = [yearly];
-      break;
-  }
-
-  window.revenueChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "GHS",
-        data,
-        backgroundColor: "#000",
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        datalabels: {
-          anchor: 'end',
-          align: 'top',
-          color: '#000',
-          font: {
-            weight: 'bold'
-          },
-          formatter: (value) => `GHS ${value.toFixed(2)}`
-        },
-        legend: {
-          display: false
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    },
-    plugins: [ChartDataLabels]
-  });
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("exportCSV").addEventListener("click", exportRevenueCSV);
-
-  document.getElementById("printButton").addEventListener("click", () => {
-  console.log("Force print trigger");
-  window.print();
-});
-
-  document.getElementById("exportPDF").addEventListener("click", function () {
-    window.print(); // Or trigger html2pdf here later
-  });
-});
-

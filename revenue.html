@@ -225,20 +225,34 @@ canvas {
       </div>
 
       <div class="table-wrapper">
-        <h2>📊 Revenue Summary Report</h2>
+  <h2>📊 Revenue Summary Report</h2>
 
-        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
-  <label for="yearSelect" style="font-weight: 500; margin-right: 0.5rem;">Select Year:</label>
-  <select id="yearSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;">
-    <option value="2025" selected>2025</option>
-    <option value="2024">2024</option>
-    <option value="2023">2023</option>
-  </select>
+  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+    <label for="yearSelect" style="font-weight: 500; margin-right: 0.5rem;">Select Year:</label>
+    <select id="yearSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;"></select>
 
-  <button id="exportCSV" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export CSV</button>
-  <button id="exportPDF" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export PDF</button>
-  <button id="printButton" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Print</button>
+    <button id="exportCSV" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export CSV</button>
+    <button id="exportPDF" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export PDF</button>
+    <button id="printButton" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Print</button>
+  </div>
+
+  <script>
+    // Populate the year dropdown automatically
+    const yearSelect = document.getElementById("yearSelect");
+    const currentYear = new Date().getFullYear();
+    const numYears = 4; // current year + last 3 years
+
+    for (let i = 0; i < numYears; i++) {
+      const year = currentYear - i;
+      const option = document.createElement("option");
+      option.value = year;
+      option.textContent = year;
+      if (i === 0) option.selected = true; // current year selected by default
+      yearSelect.appendChild(option);
+    }
+  </script>
 </div>
+
 
 
 
@@ -282,10 +296,16 @@ canvas {
   </div>
 
   <!-- Footer -->
-  <div class="app-footer">
-    &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
-    Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
-  </div>
+<div class="app-footer">
+  &copy; <span id="currentYear"></span> Sista Sista Salon & Spa. All rights reserved.<br/>
+  Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
+</div>
+
+<script>
+  // Automatically set current year
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+
 
   <!-- Scripts -->
   <script src="revenue-app.js"></script>
