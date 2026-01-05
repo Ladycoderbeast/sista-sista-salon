@@ -178,9 +178,15 @@
 
 <!-- Footer -->
 <div class="app-footer">
-  &copy; 2025 Sista Sista Salon & Spa. All rights reserved.<br/>
+  &copy; <span id="currentYear"></span> Sista Sista Salon & Spa. All rights reserved.<br/>
   Built by <strong><a href="https://hanatechnologies.org/" target="_blank" style="color: inherit;">H-A-N-A Technologies</a></strong>
 </div>
+
+<script>
+  // Automatically set current year
+  document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+
 
 <!-- Add Client Modal -->
 <div id="addClientModal" class="modal">
