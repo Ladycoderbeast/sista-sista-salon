@@ -36,6 +36,10 @@
     .delete-btn{background:#000;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer}
     .dashboard-header{padding:12px 20px;display:flex;justify-content:flex-end}
     .theme-toggle-wrapper{display:flex;align-items:center;gap:8px}
+    .user-profile{position:relative;display:inline-block;margin-top:8px;margin-right:50px;margin-left:30px}
+    .user-icon{cursor:pointer;color:#000}
+    .user-dropdown{display:none;position:absolute;background-color:#fff;min-width:50px;box-shadow:0 3px 6px rgba(0,0,0,.2);z-index:1;border-radius:8px;padding:10px}
+    body.dark .user-dropdown{background-color:#444;color:#fff}
   </style>
 </head>
 <body>
@@ -69,6 +73,15 @@
           <input type="checkbox" id="toggleDark" />
           <span class="slider"></span>
         </label>
+      </div>
+      <div class="user-profile">
+        <div class="user-icon" id="userIcon">
+          <i class="fas fa-user-circle fa-2x"></i>
+        </div>
+        <div class="user-dropdown" id="userDropdown">
+          <p id="loggedInUser">Loading...</p>
+          <button data-logout style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+        </div>
       </div>
     </div>
 
@@ -107,6 +120,7 @@
   </main>
 </div>
 
+<script src="user-icon.js"></script>
 <script>
   /* ========== Theme toggle ========== */
   const darkToggle = document.getElementById("toggleDark");

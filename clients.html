@@ -486,6 +486,7 @@
 
   // Re-apply after app.js populates table (and whenever search/filter changes)
   const reapply = () => setTimeout(applyTableFilters, 0);
+  window.reapplyClientsTableFilters = reapply;
 
   // Wire radios + clear
   document.getElementById('clientsScopeToday')?.addEventListener('change', e => {

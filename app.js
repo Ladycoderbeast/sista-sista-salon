@@ -3,65 +3,220 @@ console.log("📦 app.js is loading...");
 // =========================
 // IndexedDB Setup
 // =========================
+const DB_NAME = "SalonDB";
+const DB_VERSION = 1;
 let db;
 let visitChart;
-const request = indexedDB.open("SalonDB", 1);
+let dbPromise = null;
+let appInitDone = false;
+let reservationsIntervalId = null;
+let dashboardChannel = null;
+let reservationsChannel = null;
+let resumeReconnectPromise = null;
 
-request.onerror = function (e) {
-  console.error("❌ IndexedDB failed to open:", e.target.error);
-  alert("Failed to open database: " + e.target.error.message);
-};
+function handleAppError(context, error, { toastMessage } = {}) {
+  console.error(`❌ ${context}:`, error);
+  if (toastMessage && typeof showToast === "function") {
+    showToast(toastMessage);
+  }
+}
 
-request.onupgradeneeded = function (e) {
-  db = e.target.result;
-  if (!db.objectStoreNames.contains("clients")) {
-    db.createObjectStore("clients", { keyPath: "id", autoIncrement: true });
-  }
-  if (!db.objectStoreNames.contains("visits")) {
-    db.createObjectStore("visits", { keyPath: "id", autoIncrement: true });
-  }
-  if (!db.objectStoreNames.contains("reservations")) {
-    db.createObjectStore("reservations", { keyPath: "id", autoIncrement: true });
-  }
-  if (!db.objectStoreNames.contains("services")) {
-    db.createObjectStore("services", { keyPath: "id", autoIncrement: true });
-  }
-};
+function attachDbLifecycle(connection) {
+  connection.onversionchange = () => {
+    try { connection.close(); } catch {}
+    if (db === connection) db = null;
+    dbPromise = null;
+  };
 
-request.onsuccess = function (e) {
-  db = e.target.result;
+  if ("onclose" in connection) {
+    connection.onclose = () => {
+      if (db === connection) db = null;
+      dbPromise = null;
+    };
+  }
+}
 
-  // If you ever wrap the modal fields in a <form id="addClientForm">
+function openDatabase(forceReopen = false) {
+  if (forceReopen && db) {
+    try { db.close(); } catch {}
+    db = null;
+    dbPromise = null;
+  }
+
+  if (dbPromise) return dbPromise;
+
+  dbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = function (e) {
+      const error = e.target.error;
+      dbPromise = null;
+      handleAppError("IndexedDB failed to open", error, {
+        toastMessage: "Database could not be opened. Please reopen the app."
+      });
+      reject(error);
+    };
+
+    request.onupgradeneeded = function (e) {
+      const upgradeDb = e.target.result;
+      if (!upgradeDb.objectStoreNames.contains("clients")) {
+        upgradeDb.createObjectStore("clients", { keyPath: "id", autoIncrement: true });
+      }
+      if (!upgradeDb.objectStoreNames.contains("visits")) {
+        upgradeDb.createObjectStore("visits", { keyPath: "id", autoIncrement: true });
+      }
+      if (!upgradeDb.objectStoreNames.contains("reservations")) {
+        upgradeDb.createObjectStore("reservations", { keyPath: "id", autoIncrement: true });
+      }
+      if (!upgradeDb.objectStoreNames.contains("services")) {
+        upgradeDb.createObjectStore("services", { keyPath: "id", autoIncrement: true });
+      }
+    };
+
+    request.onsuccess = function (e) {
+      db = e.target.result;
+      attachDbLifecycle(db);
+      resolve(db);
+    };
+  });
+
+  return dbPromise;
+}
+
+function hasUsableDbConnection() {
+  if (!db) return false;
+  try {
+    db.transaction("services", "readonly");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureDbReady(forceReopen = false) {
+  if (!forceReopen && hasUsableDbConnection()) return db;
+  return openDatabase(forceReopen);
+}
+
+async function createTransaction(storeName, mode, context) {
+  await ensureDbReady();
+
+  try {
+    return db.transaction(storeName, mode);
+  } catch (error) {
+    handleAppError(`${context} failed, retrying database connection`, error);
+    await ensureDbReady(true);
+    return db.transaction(storeName, mode);
+  }
+}
+
+async function refreshAppData() {
+  await Promise.allSettled([
+    updateRevenueTrend(),
+    checkUpcomingReservations(),
+    loadClients(),
+    updateDashboardStatsFromClients()
+  ]);
+
+  if (typeof loadUpcomingReservations === "function" && db) {
+    try {
+      loadUpcomingReservations(db);
+    } catch (error) {
+      handleAppError("Refreshing upcoming reservations failed", error);
+    }
+  }
+}
+
+async function seedServicesIfNeeded() {
+  try {
+    const tx = await createTransaction("services", "readonly", "Checking services store");
+    const store = tx.objectStore("services");
+    const countRequest = store.count();
+
+    countRequest.onsuccess = function () {
+      if (countRequest.result === 0) seedServices();
+    };
+  } catch (error) {
+    handleAppError("Checking services store failed", error);
+  }
+}
+
+function initializeAppOnce() {
+  if (appInitDone) return;
+  appInitDone = true;
+
   document.getElementById("addClientForm")?.addEventListener("submit", function (e) {
     e.preventDefault();
     addClient();
   });
 
-  updateRevenueTrend(db);
-  checkUpcomingReservations();
-  setInterval(() => checkUpcomingReservations(), 5 * 60 * 1000);
+  if (!reservationsIntervalId) {
+    reservationsIntervalId = window.setInterval(() => {
+      checkUpcomingReservations();
+    }, 5 * 60 * 1000);
+  }
 
-  // Seed services store if empty (optional)
-  const tx = db.transaction("services", "readonly");
-  const store = tx.objectStore("services");
-  const countRequest = store.count();
-  countRequest.onsuccess = function () {
-    if (countRequest.result === 0) seedServices();
-    loadClients();
-    updateDashboardStatsFromClients();
-  };
-
-  // Cross-tab updates
-  if (typeof BroadcastChannel !== "undefined") {
-    const dashCh = new BroadcastChannel("dashboardChannel");
-    dashCh.onmessage = (msg) => {
-      if (msg === "update") {
+  if (!dashboardChannel && typeof BroadcastChannel !== "undefined") {
+    dashboardChannel = new BroadcastChannel("dashboardChannel");
+    dashboardChannel.onmessage = (event) => {
+      if (event.data === "update") {
         loadClients();
         updateDashboardStatsFromClients();
       }
     };
   }
-};
+}
+
+async function bootstrapApp({ forceReopen = false, source = "startup" } = {}) {
+  try {
+    await ensureDbReady(forceReopen);
+    initializeAppOnce();
+    await seedServicesIfNeeded();
+    await refreshAppData();
+  } catch (error) {
+    handleAppError(`App bootstrap failed after ${source}`, error, {
+      toastMessage: "The app lost its database connection. Please reopen the page if this keeps happening."
+    });
+  }
+}
+
+window.addEventListener("error", (event) => {
+  handleAppError("Unhandled JavaScript error", event.error || event.message, {
+    toastMessage: "Something went wrong. Please try that action again."
+  });
+});
+
+window.addEventListener("unhandledrejection", (event) => {
+  handleAppError("Unhandled promise rejection", event.reason, {
+    toastMessage: "A background task failed. Please try again."
+  });
+});
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  if (!resumeReconnectPromise) {
+    resumeReconnectPromise = bootstrapApp({ forceReopen: true, source: "pageshow" })
+      .finally(() => { resumeReconnectPromise = null; });
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  if (!resumeReconnectPromise) {
+    resumeReconnectPromise = bootstrapApp({ forceReopen: true, source: "visibilitychange" })
+      .finally(() => { resumeReconnectPromise = null; });
+  }
+});
+
+window.addEventListener("online", () => {
+  if (!resumeReconnectPromise) {
+    resumeReconnectPromise = bootstrapApp({ forceReopen: true, source: "online" })
+      .finally(() => { resumeReconnectPromise = null; });
+  }
+});
+
+window.ensureSalonDbReady = ensureDbReady;
+window.appBootstrapPromise = bootstrapApp();
 
 /* =========================
    Local time helpers
@@ -106,8 +261,8 @@ function parseLocalDate(dateStr) {
 /* =========================
    Trend (local days)
    ========================= */
-function updateRevenueTrend(db) {
-  const tx = db.transaction("clients", "readonly");
+async function updateRevenueTrend() {
+  const tx = await createTransaction("clients", "readonly", "Updating revenue trend");
   const store = tx.objectStore("clients");
 
   const todayStr = localDateStr();
@@ -171,8 +326,10 @@ function clearSelectedServices() {
 /* =========================
    Add Client (multi-service) — FIXED
    ========================= */
-function addClient() {
-  if (!db) {
+async function addClient() {
+  try {
+    await ensureDbReady();
+  } catch {
     showToast("Database is initialising. Please try again in a moment.");
     return;
   }
@@ -211,7 +368,15 @@ function addClient() {
       staff
     };
 
-    const tx = db.transaction("clients", "readwrite");
+    let tx;
+    try {
+      tx = db.transaction("clients", "readwrite");
+    } catch (error) {
+      handleAppError("Creating client transaction failed", error, {
+        toastMessage: "The database connection was lost. Please try again."
+      });
+      return;
+    }
     const store = tx.objectStore("clients");
     store.add(client);
 
@@ -232,10 +397,14 @@ function addClient() {
       document.getElementById("clientStaff").value = "";
       if (photoInput) photoInput.value = "";
 
-      if (typeof BroadcastChannel !== "undefined") {
-        new BroadcastChannel("dashboardChannel").postMessage("update");
-      }
+      dashboardChannel?.postMessage("update");
       showToast("Client saved successfully!");
+    };
+
+    tx.onerror = () => {
+      handleAppError("Saving client failed", tx.error, {
+        toastMessage: "Client could not be saved. Please try again."
+      });
     };
   };
 
@@ -261,7 +430,7 @@ window.addClient = addClient;
     .trim();
 }
 
-function loadClients() {
+async function loadClients() {
   const tableBody = document.querySelector("#clientsTable tbody");
   const rawSearch = document.getElementById("clientSearchInput")?.value || "";
 const searchValue = normalizeSearchText(rawSearch);
@@ -270,7 +439,7 @@ const searchValue = normalizeSearchText(rawSearch);
   if (!tableBody) return;
   tableBody.innerHTML = "";
 
-  const tx = db.transaction("clients", "readonly");
+  const tx = await createTransaction("clients", "readonly", "Loading clients");
   const store = tx.objectStore("clients");
   const clients = [];
 
@@ -315,6 +484,9 @@ const searchValue = normalizeSearchText(rawSearch);
       cursor.continue();
     } else {
       updateClientSummaryCards(clients);
+      if (typeof window.reapplyClientsTableFilters === "function") {
+        window.reapplyClientsTableFilters();
+      }
     }
   };
 }
@@ -322,8 +494,8 @@ const searchValue = normalizeSearchText(rawSearch);
 /* =========================
    Delete Client
    ========================= */
-function deleteClient(phone) {
-  const tx = db.transaction("clients", "readwrite");
+async function deleteClient(phone) {
+  const tx = await createTransaction("clients", "readwrite", "Deleting client");
   const store = tx.objectStore("clients");
   store.openCursor().onsuccess = function (e) {
     const cursor = e.target.result;
@@ -342,8 +514,8 @@ function deleteClient(phone) {
 /* =========================
    Dashboard Stats (local)
    ========================= */
-function updateDashboardStatsFromClients() {
-  const tx = db.transaction("clients", "readonly");
+async function updateDashboardStatsFromClients() {
+  const tx = await createTransaction("clients", "readonly", "Updating dashboard stats");
   const store = tx.objectStore("clients");
 
   const now = new Date();
@@ -467,13 +639,13 @@ function showToast(message) {
 /* =========================
    CSV Export
    ========================= */
-function exportClientsCSV() {
+async function exportClientsCSV() {
   const headers = [
     "Name","Phone","Gender","Services","Date","Time","Staff","Amount","Payment"
   ];
   const rows = [];
 
-  const tx = db.transaction("clients", "readonly");
+  const tx = await createTransaction("clients", "readonly", "Exporting clients CSV");
   const store = tx.objectStore("clients");
 
   store.openCursor().onsuccess = function (e) {
@@ -597,8 +769,8 @@ function printClientsTable() {
 /* ================================
    Upcoming reservations notifier
    ================================ */
-function checkUpcomingReservations() {
-  const tx = db.transaction("reservations", "readonly");
+async function checkUpcomingReservations() {
+  const tx = await createTransaction("reservations", "readonly", "Checking upcoming reservations");
   const store = tx.objectStore("reservations");
 
   const nowTime = Date.now();
@@ -669,15 +841,26 @@ function decodeAmp(s = "") {
 // Read all reservations from IndexedDB
 async function getAllReservations(){
   return new Promise((resolve)=>{
-    const req = indexedDB.open("SalonDB", 1);
-    req.onerror = () => resolve([]);
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onerror = (event) => {
+      handleAppError("Opening reservations database failed", event.target.error);
+      resolve([]);
+    };
     req.onsuccess = (ev) => {
       const _db = ev.target.result;
+      attachDbLifecycle(_db);
       const tx = _db.transaction("reservations", "readonly");
       const store = tx.objectStore("reservations");
       const ga = store.getAll();
-      ga.onsuccess = () => resolve(ga.result || []);
-      ga.onerror   = () => resolve([]);
+      ga.onsuccess = () => {
+        const results = ga.result || [];
+        try { _db.close(); } catch {}
+        resolve(results);
+      };
+      ga.onerror   = () => {
+        try { _db.close(); } catch {}
+        resolve([]);
+      };
     };
   });
 }
@@ -811,9 +994,9 @@ function wireReservationsPage() {
   loadTimelineHoursWithReservations();
 
   // cross-tab refresh
-  if (typeof BroadcastChannel !== "undefined") {
-    const resChannel = new BroadcastChannel("reservations");
-    resChannel.onmessage = (event)=>{
+  if (!reservationsChannel && typeof BroadcastChannel !== "undefined") {
+    reservationsChannel = new BroadcastChannel("reservations");
+    reservationsChannel.onmessage = (event)=>{
       const msg = event.data;
       if (msg?.type === "update" && msg.from !== undefined) {
         loadTimelineHoursWithReservations();
@@ -823,7 +1006,8 @@ function wireReservationsPage() {
 
   // Global Share button (share all for the chosen date/today)
   const shareBtn = document.getElementById("shareTodayBtn");
-  if (shareBtn) {
+  if (shareBtn && !shareBtn.dataset.boundClick) {
+    shareBtn.dataset.boundClick = "true";
     shareBtn.addEventListener("click", () => {
       const chosen =
         document.getElementById("shareDate")?.value ||

@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v7';
+const CACHE_NAME = 'sista-sista-cache-v8';
 
 const CORE_ASSETS = [
   './',
@@ -59,41 +59,61 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  if (request.method !== 'GET') return;
+
   const url = new URL(request.url);
+  const isHtmlNavigation = request.mode === 'navigate';
+  const isAppShellAsset =
+    request.destination === 'script' ||
+    request.destination === 'style' ||
+    request.destination === 'document' ||
+    /\.(?:js|css|html)$/.test(url.pathname);
 
-  // HTML navigations: network-first, then try cached request, then offline
-  if (request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const res = await fetch(request);
-        if (!res.ok) throw new Error('bad status');
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(request, copy));
-        return res;
-      } catch {
-        return (
-          (await caches.match(request)) ||
-          (await caches.match('./offline.html'))
-        );
-      }
-    })());
-    return;
-  }
-
-  // Same-origin assets: cache-first
-  if (url.origin === self.location.origin) {
-    event.respondWith((async () => {
-      const cached = await caches.match(request);
-      if (cached) return cached;
-      const res = await fetch(request);
+  const networkFirst = async () => {
+    try {
+      const res = await fetch(request, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('bad status');
       const copy = res.clone();
       caches.open(CACHE_NAME).then(c => c.put(request, copy));
       return res;
-    })());
+    } catch {
+      return (
+        (await caches.match(request)) ||
+        (isHtmlNavigation ? await caches.match('./offline.html') : undefined)
+      );
+    }
+  };
+
+  const cacheFirst = async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    const res = await fetch(request);
+    if (res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE_NAME).then(c => c.put(request, copy));
+    }
+    return res;
+  };
+
+  // HTML and active JS/CSS should not get stuck on an old cached version.
+  if (isHtmlNavigation) {
+    event.respondWith(networkFirst());
     return;
   }
 
-  // Cross-origin (CDNs): network-first, fallback to cache
+  // Same-origin app shell assets: network-first so deploys can replace app.js/login/auth quickly.
+  if (url.origin === self.location.origin && isAppShellAsset) {
+    event.respondWith(networkFirst());
+    return;
+  }
+
+  // Same-origin images/icons/etc: cache-first for offline speed.
+  if (url.origin === self.location.origin) {
+    event.respondWith(cacheFirst());
+    return;
+  }
+
+  // Cross-origin (CDNs): network-first, fallback to cache.
   event.respondWith((async () => {
     try {
       const res = await fetch(request);

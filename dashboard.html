@@ -245,7 +245,10 @@
 
         <div class="user-profile">
           <div class="user-icon" id="userIcon"><i class="fas fa-user-circle fa-2x"></i></div>
-          <div class="user-dropdown" id="userDropdown"><p id="loggedInUser">Loading...</p></div>
+          <div class="user-dropdown" id="userDropdown">
+            <p id="loggedInUser">Loading...</p>
+            <button data-logout style="margin-top: 10px; background-color: #000000; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer;">Logout</button>
+          </div>
         </div>
       </div>
 
@@ -312,9 +315,10 @@
   document.getElementById('currentYear').textContent = new Date().getFullYear();
 </script>
 
+  <script src="user-icon.js"></script>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const user = JSON.parse(localStorage.getItem("loggedUser"));
       const showRevenue = user?.role === "admin";
 
@@ -324,99 +328,39 @@
       const dailyRevenueCard = document.getElementById("dailyRevenueCard");
       if (dailyRevenueCard && !showRevenue) dailyRevenueCard.style.display = "none";
 
-      const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const visitCounts = [0, 0, 0, 0, 0, 0, 0];
       let allVisits = [];
 
       document.getElementById("loggedInUser").textContent = user.username || "Unknown";
 
-      document.getElementById("userIcon").addEventListener("click", () => {
-        const dropdown = document.getElementById("userDropdown");
-        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-      });
+      if (window.appBootstrapPromise) {
+        await window.appBootstrapPromise;
+      }
 
-      const request = indexedDB.open("SalonDB", 1);
-      request.onsuccess = function (e) {
-        db = e.target.result;
-        loadUpcomingReservations(db);
+      const dashboardDb = window.ensureSalonDbReady
+        ? await window.ensureSalonDbReady()
+        : await new Promise((resolve, reject) => {
+            const fallbackRequest = indexedDB.open("SalonDB", 1);
+            fallbackRequest.onsuccess = (event) => resolve(event.target.result);
+            fallbackRequest.onerror = (event) => reject(event.target.error);
+          });
 
-        allVisits = [];
-        let todayVisits = 0;
-        let monthlyRevenue = 0;
-        const serviceSet = new Set();
-        const visitCounts = Array(7).fill(0);
-        const uniqueClientKeys = new Set();
-
-        const todayDateStr = new Date().toISOString().split("T")[0];
-        const currentMonth = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
-
-        const tx = db.transaction("clients", "readonly");
+      function loadCalendarVisits() {
+        const tx = dashboardDb.transaction("clients", "readonly");
         const store = tx.objectStore("clients");
+        const request = store.getAll();
 
-        store.openCursor().onsuccess = function (e) {
-          const cursor = e.target.result;
-          if (cursor) {
-            const c = cursor.value;
-            const visitDate = new Date(c.date);
-            const visitDateStr = visitDate.toISOString().split("T")[0];
-            const visitMonth = visitDate.getMonth();
-            const visitYear = visitDate.getFullYear();
-            const dayIndex = visitDate.getDay();
-
-            allVisits.push({ date: visitDateStr });
-
-            if (visitDateStr === todayDateStr) todayVisits++;
-            if (visitMonth === currentMonth && visitYear === currentYear && c.amount) {
-              monthlyRevenue += parseFloat(c.amount);
-            }
-            if (c.service) serviceSet.add(c.service);
-            visitCounts[dayIndex]++;
-            uniqueClientKeys.add(`${c.name}_${c.phone}`);
-
-            cursor.continue();
-          } else {
-            document.getElementById("todaysVisits").textContent = todayVisits;
-            document.getElementById("monthlyRevenue").textContent = `GHS ${monthlyRevenue.toFixed(2)}`;
-            document.getElementById("availableServices").textContent = serviceSet.size;
-            document.getElementById("totalClients").textContent = uniqueClientKeys.size;
-
-            new Chart(document.getElementById("visitTrendChart"), {
-              type: "line",
-              data: {
-                labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-                datasets: [{
-                  data: visitCounts,
-                  backgroundColor: "rgba(170,38,38,0.1)",
-                  borderColor: "#aa2626",
-                  fill: true,
-                  tension: 0.4,
-                  pointRadius: 5
-                }]
-              },
-              options: { plugins: { legend: { display: false } } }
-            });
-
-            // visits for mini calendar
-            let allVisits = [];
-            function loadVisits(callback) {
-              const tx = db.transaction("clients", "readonly");
-              const store = tx.objectStore("clients");
-              const request = store.getAll();
-              request.onsuccess = () => {
-                allVisits = request.result || [];
-                if (typeof callback === "function") callback();
-              };
-              request.onerror = () => {
-                allVisits = [];
-                if (typeof callback === "function") callback();
-              };
-            }
-
-            loadVisits(() => { renderCalendar(offset); });
-          }
+        request.onsuccess = () => {
+          allVisits = request.result || [];
+          renderCalendar(offset);
         };
-      };
+
+        request.onerror = () => {
+          allVisits = [];
+          renderCalendar(offset);
+        };
+      }
+
+      loadCalendarVisits();
 
       if (typeof getTotalClients === "function") {
         getTotalClients(total => { document.getElementById("totalClients").textContent = total; });

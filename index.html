@@ -344,23 +344,44 @@
     /* ========= Login handling ========= */
     document.getElementById("loginForm").addEventListener("submit", async function(e) {
       e.preventDefault();
+      const form = e.currentTarget;
+      const submitBtn = e.submitter || form.querySelector('button[type="submit"]');
       const username = document.getElementById("username").value.trim();
       const pin      = document.getElementById("password").value.trim();
       const role     = document.getElementById("role").value;
+      const loginError = document.getElementById("loginError");
 
-      const ok = await validateLogin(username, role, pin);
-      if (ok) {
-        const session = {
-          user: { username, role },
-          issuedAt: Date.now(),
-          expiresAt: Date.now() + 8 * 60 * 60 * 1000
-        };
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
-        localStorage.setItem("loggedUser", JSON.stringify(session.user));
-        const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
-        location.href = next;
-      } else {
-        document.getElementById("loginError").style.display = "block";
+      loginError.style.display = "none";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Signing in...";
+      }
+
+      try {
+        const ok = await validateLogin(username, role, pin);
+        if (ok) {
+          const session = {
+            user: { username, role },
+            issuedAt: Date.now(),
+            expiresAt: Date.now() + 8 * 60 * 60 * 1000
+          };
+          sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+          localStorage.setItem("loggedUser", JSON.stringify(session.user));
+          localStorage.setItem("role", role);
+          localStorage.setItem("username", username);
+          const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
+          location.href = next;
+        } else {
+          loginError.style.display = "block";
+        }
+      } catch (error) {
+        console.error("Login failed unexpectedly:", error);
+        showToast("Login failed. Please try again.");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Login";
+        }
       }
     });
 
@@ -381,9 +402,35 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
+        const hadController = !!navigator.serviceWorker.controller;
+        let refreshing = false;
+
         navigator.serviceWorker
           .register('./sw.js', { scope: './' })
-          .then(reg => console.log('✅ Service Worker registered at scope:', reg.scope))
+          .then(reg => {
+            console.log('✅ Service Worker registered at scope:', reg.scope);
+            reg.update();
+
+            if (reg.waiting) {
+              reg.waiting.postMessage('SKIP_WAITING');
+            }
+
+            reg.addEventListener('updatefound', () => {
+              const worker = reg.installing;
+              if (!worker) return;
+              worker.addEventListener('statechange', () => {
+                if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+                  worker.postMessage('SKIP_WAITING');
+                }
+              });
+            });
+
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+              if (!hadController || refreshing) return;
+              refreshing = true;
+              window.location.reload();
+            });
+          })
           .catch(err => console.error('❌ SW registration failed:', err));
       });
     }
