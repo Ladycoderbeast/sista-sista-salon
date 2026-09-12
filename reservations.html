@@ -44,9 +44,29 @@
     .services-checklist summary{cursor:pointer;font-weight:600}
     .services-checklist label{display:block;margin:6px 0}
     .icon-actions i{vertical-align:middle}
+
+    /* Let the form determine its height, so the timeline always starts below it. */
+    .bookings-page .main-content{min-width:0}
+    .bookings-page .dashboard-body{margin-top:32px;padding-bottom:0}
+    .bookings-page .form-wrapper-column{height:auto;width:100%;max-width:440px;margin:0 auto;justify-content:flex-start;gap:20px}
+    .bookings-page .form-heading{margin:0}
+    .bookings-page .form-card{max-width:none;margin:0}
+    .bookings-page .timeline-wrapper{margin:36px 0 24px;padding:24px;background:#fff;border:1px solid #e5e5e5;border-radius:14px}
+    .bookings-section-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding-bottom:20px;border-bottom:1px solid #eee}
+    .bookings-section-header h2{margin:0;font-size:22px;font-weight:700;line-height:1.3}
+    .bookings-section-header p{margin:6px 0 0;font-size:14px;line-height:1.5;color:#666}
+    .bookings-section-header .btn{min-height:44px;flex-shrink:0;white-space:normal}
+    .bookings-page .timeline-hours{margin:24px 0 0 44px;padding-left:16px}
+    body.dark .timeline-wrapper{background:#252525;border-color:#444}
+    body.dark .bookings-section-header{border-color:#444}
+    body.dark .bookings-section-header p{color:#bbb}
+    body.dark .timeline-hours{border-color:#555}
+    body.dark .hour-block{border-color:#444}
+    body.dark .time-label{color:#ddd}
+    @media(max-width:600px){.bookings-page .timeline-wrapper{padding:16px}.bookings-section-header{align-items:flex-start;flex-direction:column}.bookings-section-header .btn{width:100%}.bookings-section-header h2{font-size:20px}}
   </style>
 </head>
-<body>
+<body class="bookings-page">
 <script>
   const user = JSON.parse(localStorage.getItem("loggedUser"));
   if (!user || !user.role) { window.location.href = "index.html"; }
@@ -111,19 +131,21 @@
       </div>
     </div>
 
-    <div class="timeline-wrapper" style="margin: 2rem 0;">
-      <h3>Upcoming Bookings (Timeline View)</h3>
-
-      <div class="share-toolbar" style="display:flex; justify-content:flex-end; gap:10px; margin:.5rem 0 1rem;">
+    <section class="timeline-wrapper" aria-labelledby="upcomingBookingsTitle">
+      <div class="bookings-section-header">
+        <div>
+          <h2 id="upcomingBookingsTitle">Upcoming Bookings</h2>
+          <p>View your bookings on the timeline below.</p>
+        </div>
         <button id="shareTodayBtn" type="button" class="btn" title="Share via email">
-          <i class="fas fa-share"></i> Share via Email
+          <i class="fas fa-share" aria-hidden="true"></i> Share via Email
         </button>
       </div>
 
       <div class="timeline-scroll">
         <div id="timelineHours" class="timeline-hours"></div>
       </div>
-    </div>
+    </section>
 
    <!-- Footer -->
 <div class="app-footer">
