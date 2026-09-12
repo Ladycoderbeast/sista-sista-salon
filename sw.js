@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v11';
+const CACHE_NAME = 'sista-sista-cache-v12';
 
 const CORE_ASSETS = [
   './',
