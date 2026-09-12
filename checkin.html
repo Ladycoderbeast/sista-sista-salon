@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Welcome | Sista Sista Salon &amp; Spa</title>
+  <style id="salon-access-shield">html{visibility:hidden!important}</style>
+  <script src="auth.js"></script>
+  <link rel="stylesheet" href="checkin.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body class="customer-page">
+  <main class="customer-shell">
+    <div class="customer-brand">Sista Sista Salon &amp; Spa</div>
+    <h1>Welcome. Let’s get you checked in.</h1>
+    <p>Tell us what you’re here for today. Our team will confirm your services with you.</p>
+    <p id="customerConfirmation" role="status" aria-live="polite"></p>
+    <form id="customerForm" class="visit-panel visit-form" autocomplete="off">
+      <label>Your name<input name="name" autocomplete="off" required maxlength="200"></label>
+      <label>Phone number<input name="phone" type="tel" autocomplete="off" required maxlength="40"></label>
+      <label>Gender (optional)<select name="gender"><option value="">Prefer not to say</option><option>Female</option><option>Male</option></select></label>
+      <label>Find a service<input id="findService" type="search" placeholder="Search services" autocomplete="off"></label>
+      <fieldset><legend>Which services would you like?</legend><div id="customerServices" class="visit-services">Loading services…</div></fieldset>
+      <p>Your arrival date and time are recorded automatically.</p>
+      <p id="customerError" role="alert"></p>
+      <button class="visit-primary" type="submit" disabled>Check in</button>
+    </form>
+    <button type="button" id="staffReturn">Staff sign-in</button>
+  </main>
+  <dialog id="staffDialog">
+    <form id="unlockForm" class="visit-form" autocomplete="off">
+      <h2>Return to staff view</h2>
+      <label>Username<input name="username" required autocomplete="off"></label>
+      <label>Role<select name="role"><option value="staff">Staff</option><option value="admin">Admin</option></select></label>
+      <label>PIN<input name="pin" type="password" inputmode="numeric" required autocomplete="off"></label>
+      <p id="unlockMessage" role="alert"></p>
+      <button type="submit" class="visit-primary">Unlock staff view</button>
+      <button type="button" id="cancelUnlock">Back to check-in</button>
+    </form>
+  </dialog>
+  <script src="visit-store.js"></script>
+  <script src="checkin-services.js"></script>
+  <script src="checkin.js"></script>
+<script src="checkin-layout.js"></script>
+</body>
+</html>

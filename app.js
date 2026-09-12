@@ -4,7 +4,7 @@ console.log("📦 app.js is loading...");
 // IndexedDB Setup
 // =========================
 const DB_NAME = "SalonDB";
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 let db;
 let visitChart;
 let dbPromise = null;
@@ -48,6 +48,10 @@ function openDatabase(forceReopen = false) {
   dbPromise = new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
+    request.onblocked = () => {
+      showToast("Please close other salon tabs and reopen the app to finish updating.");
+    };
+
     request.onerror = function (e) {
       const error = e.target.error;
       dbPromise = null;
@@ -62,6 +66,19 @@ function openDatabase(forceReopen = false) {
       if (!upgradeDb.objectStoreNames.contains("clients")) {
         upgradeDb.createObjectStore("clients", { keyPath: "id", autoIncrement: true });
       }
+      const clientsStore = e.target.transaction.objectStore("clients");
+      if (!clientsStore.indexNames.contains("date")) {
+        clientsStore.createIndex("date", "date", { unique: false });
+      }
+      if (!clientsStore.indexNames.contains("checkinId")) {
+        clientsStore.createIndex("checkinId", "checkinId", { unique: true });
+      }
+      if (!upgradeDb.objectStoreNames.contains("checkins")) {
+        upgradeDb.createObjectStore("checkins", { keyPath: "id", autoIncrement: true });
+      }
+      const checkinsStore = e.target.transaction.objectStore("checkins");
+      if (!checkinsStore.indexNames.contains("status")) checkinsStore.createIndex("status", "status");
+      if (!checkinsStore.indexNames.contains("submissionId")) checkinsStore.createIndex("submissionId", "submissionId", { unique: true });
       if (!upgradeDb.objectStoreNames.contains("visits")) {
         upgradeDb.createObjectStore("visits", { keyPath: "id", autoIncrement: true });
       }
@@ -262,6 +279,7 @@ function parseLocalDate(dateStr) {
    Trend (local days)
    ========================= */
 async function updateRevenueTrend() {
+  if (!document.getElementById("revenueTrend")) return;
   const tx = await createTransaction("clients", "readonly", "Updating revenue trend");
   const store = tx.objectStore("clients");
 
@@ -326,7 +344,40 @@ function clearSelectedServices() {
 /* =========================
    Add Client (multi-service) — FIXED
    ========================= */
+// Keep uploads small enough for offline storage and use separate list thumbnails.
+async function prepareClientPhoto(file) {
+  if (!file) return { photoData: '', photoThumbnail: '' };
+  const url = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = () => reject(new Error('Unsupported photo format'));
+      image.src = url;
+    });
+    const resize = maxSide => {
+      const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const context = canvas.getContext('2d');
+      context.fillStyle = '#fff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+      const data = canvas.toDataURL('image/jpeg', 0.8);
+      canvas.width = canvas.height = 0;
+      return data;
+    };
+    return { photoData: resize(1280), photoThumbnail: resize(96) };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+let clientSaveInProgress = false;
+
 async function addClient() {
+  if (clientSaveInProgress) return;
   try {
     await ensureDbReady();
   } catch {
@@ -352,9 +403,20 @@ async function addClient() {
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = function () {
-    const photoData = reader.result || "";
+  if (clientSaveInProgress) return;
+  clientSaveInProgress = true;
+  let photo;
+  try {
+    photo = await prepareClientPhoto(photoInput?.files?.[0]);
+    await ensureDbReady();
+  } catch (error) {
+    clientSaveInProgress = false;
+    handleAppError('Preparing client photo failed', error, {
+      toastMessage: 'Could not prepare this photo. Try a JPEG or PNG photo, or save without a photo.'
+    });
+    return;
+  }
+  {
     const client = {
       name,
       phone,
@@ -363,7 +425,7 @@ async function addClient() {
       amount,
       date,
       time,
-      photoData,
+      ...photo,
       paymentMethod,
       staff
     };
@@ -371,16 +433,16 @@ async function addClient() {
     let tx;
     try {
       tx = db.transaction("clients", "readwrite");
+      tx.objectStore("clients").add(client);
     } catch (error) {
+      clientSaveInProgress = false;
       handleAppError("Creating client transaction failed", error, {
         toastMessage: "The database connection was lost. Please try again."
       });
       return;
     }
-    const store = tx.objectStore("clients");
-    store.add(client);
-
     tx.oncomplete = () => {
+      clientSaveInProgress = false;
       loadClients();
       updateDashboardStatsFromClients();
       document.getElementById("addClientModal").style.display = "none";
@@ -401,18 +463,12 @@ async function addClient() {
       showToast("Client saved successfully!");
     };
 
-    tx.onerror = () => {
+    tx.onerror = tx.onabort = () => {
+      clientSaveInProgress = false;
       handleAppError("Saving client failed", tx.error, {
         toastMessage: "Client could not be saved. Please try again."
       });
     };
-  };
-
-  if (photoInput?.files?.length > 0) {
-    reader.readAsDataURL(photoInput.files[0]);
-  } else {
-    // trigger onload with empty data (no photo chosen)
-    reader.onload({ target: { result: "" } });
   }
 }
 
@@ -430,65 +486,136 @@ window.addClient = addClient;
     .trim();
 }
 
+let clientsLoadVersion = 0;
+let clientsSearchTimer;
+let clientsViewRecords = [];
+let clientsPage = 0;
+const CLIENTS_PAGE_SIZE = 50;
+
+function clientsViewOptions() {
+  return window.getClientsViewOptions?.() || { scope: 'today', card: 'total' };
+}
+
+function filteredClientsView() {
+  const { card } = clientsViewOptions();
+  const counts = new Map();
+  clientsViewRecords.forEach(c => counts.set(c.phone, (counts.get(c.phone) || 0) + 1));
+  return clientsViewRecords.filter(c => {
+    if (card === 'female') return c.gender === 'Female';
+    if (card === 'male') return c.gender === 'Male';
+    if (card === 'new') return counts.get(c.phone) === 1;
+    if (card === 'returning') return counts.get(c.phone) > 1;
+    return true;
+  });
+}
+
+function escapeClientHTML(value = '') {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[ch]);
+}
+
+function clientExportCells(client) {
+  return [client.name, client.phone, client.gender, '', client.servicesArray.join(', ') || '-',
+    client.date, client.time, client.staff || '-', client.amount || '', client.paymentMethod || '-', ''];
+}
+
+function createClientRow(client, includePhoto = true) {
+  const row = document.createElement('tr');
+  row.innerHTML = clientExportCells(client).map((value, i) =>
+    `<td${i >= 8 ? ' class="admin-only"' : ''}>${escapeClientHTML(value)}</td>`).join('');
+  if (includePhoto && client.photoData) {
+    const img = document.createElement('img');
+    img.src = client.photoThumbnail || client.photoData;
+    img.alt = 'Client photo';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    img.width = img.height = 40;
+    img.style.cssText = 'border-radius:50%;object-fit:cover;cursor:pointer';
+    img.onclick = () => openFullImage(client.photoData);
+    row.children[3].appendChild(img);
+  }
+  if (includePhoto) {
+    const button = document.createElement('button');
+    button.textContent = 'Delete';
+    button.onclick = () => deleteClient(client.phone);
+    row.children[10].appendChild(button);
+  }
+  return row;
+}
+
+function renderClientsView(resetPage = true) {
+  const tbody = document.querySelector('#clientsTable tbody');
+  if (!tbody) return;
+  if (resetPage) clientsPage = 0;
+  const records = filteredClientsView();
+  const lastPage = Math.max(0, Math.ceil(records.length / CLIENTS_PAGE_SIZE) - 1);
+  clientsPage = Math.min(clientsPage, lastPage);
+  const start = clientsPage * CLIENTS_PAGE_SIZE;
+  const rows = document.createDocumentFragment();
+  records.slice(start, start + CLIENTS_PAGE_SIZE).forEach(c => rows.appendChild(createClientRow(c)));
+  tbody.replaceChildren(rows);
+  const status = document.getElementById('clientsPageStatus');
+  if (status) status.textContent = records.length
+    ? `${start + 1}–${Math.min(start + CLIENTS_PAGE_SIZE, records.length)} of ${records.length} clients`
+    : 'No clients found';
+  const previous = document.getElementById('clientsPrevious');
+  const next = document.getElementById('clientsNext');
+  if (previous) previous.disabled = clientsPage === 0;
+  if (next) next.disabled = clientsPage === lastPage;
+  const badge = document.getElementById('activeCardFilter');
+  const { scope, card } = clientsViewOptions();
+  if (badge) badge.textContent = card === 'total' ? '' : `Filtered: ${card} (${scope})`;
+}
+
+function changeClientsPage(direction) {
+  clientsPage = Math.max(0, clientsPage + direction);
+  renderClientsView(false);
+  document.querySelector('.client-list')?.scrollTo({ top: 0 });
+}
+
+function scheduleClientsSearch() {
+  clearTimeout(clientsSearchTimer);
+  ++clientsLoadVersion; // Invalidate a read started before the latest keystroke.
+  clientsSearchTimer = setTimeout(() => loadClients(), 250);
+}
+
 async function loadClients() {
-  const tableBody = document.querySelector("#clientsTable tbody");
-  const rawSearch = document.getElementById("clientSearchInput")?.value || "";
-const searchValue = normalizeSearchText(rawSearch);
-
-  const selectedService = document.getElementById("serviceFilter")?.value || "";
-  if (!tableBody) return;
-  tableBody.innerHTML = "";
-
-  const tx = await createTransaction("clients", "readonly", "Loading clients");
-  const store = tx.objectStore("clients");
+  if (!document.querySelector('#clientsTable tbody')) return;
+  clearTimeout(clientsSearchTimer);
+  const loadVersion = ++clientsLoadVersion;
+  const search = normalizeSearchText(document.getElementById('clientSearchInput')?.value || '');
+  const service = document.getElementById('serviceFilter')?.value || '';
+  const { scope } = clientsViewOptions();
+  const today = localDateStr();
+  const tx = await createTransaction('clients', 'readonly', 'Loading clients');
+  const store = tx.objectStore('clients');
   const clients = [];
+  const source = scope === 'today' ? store.index('date') : store;
 
-  store.openCursor().onsuccess = function (e) {
-    const cursor = e.target.result;
-    if (cursor) {
-      const client = cursor.value;
-      const servicesArray = Array.isArray(client.services)
-        ? client.services
-        : (client.service ? [client.service] : []); // backward compat
-      const servicesText = servicesArray.join(", ");
-
-      const matchesSearch =
-  !searchValue ||
-  normalizeSearchText(client.name).includes(searchValue) ||
-  normalizeSearchText(client.phone).includes(searchValue) ||
-  normalizeSearchText(servicesText).includes(searchValue) ||
-  normalizeSearchText(client.staff || "").includes(searchValue);
-
-
-      const matchesService =
-        selectedService === "" || servicesArray.includes(selectedService);
-
-      if (matchesSearch && matchesService) {
-        clients.push({ ...client, servicesArray });
-
-        const row = document.createElement("tr");
-        row.innerHTML = `
-          <td>${client.name}</td>
-          <td>${client.phone}</td>
-          <td>${client.gender}</td>
-          <td><img src="${client.photoData || ""}" alt="photo" style="width:40px;height:40px;border-radius:50%;object-fit:cover;cursor:pointer;" onclick="openFullImage(this.src)" /></td>
-          <td>${servicesText || "-"}</td>
-          <td>${client.date}</td>
-          <td>${client.time}</td>
-          <td>${client.staff || "-"}</td>
-          <td class="admin-only">${client.amount || ""}</td>
-          <td class="admin-only">${client.paymentMethod || "-"}</td>
-          <td class="admin-only"><button onclick="deleteClient('${client.phone}')">Delete</button></td>`;
-        tableBody.appendChild(row);
+  return new Promise((resolve, reject) => {
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error || new Error('Loading clients was aborted'));
+    source.openCursor(scope === 'today' ? today : null, 'prev').onsuccess = e => {
+      if (loadVersion !== clientsLoadVersion) { resolve(); return; }
+      const cursor = e.target.result;
+      if (cursor) {
+        const client = cursor.value;
+        const servicesArray = Array.isArray(client.services) ? client.services : (client.service ? [client.service] : []);
+        if ((!search || [client.name, client.phone, servicesArray.join(', '), client.staff]
+          .some(value => normalizeSearchText(value).includes(search))) &&
+          (!service || servicesArray.includes(service))) {
+          clients.push({ ...client, servicesArray });
+        }
+        cursor.continue();
+      } else {
+        clientsViewRecords = clients;
+        updateClientSummaryCards(clients);
+        renderClientsView();
+        resolve();
       }
-      cursor.continue();
-    } else {
-      updateClientSummaryCards(clients);
-      if (typeof window.reapplyClientsTableFilters === "function") {
-        window.reapplyClientsTableFilters();
-      }
-    }
-  };
+    };
+  });
 }
 
 /* =========================
@@ -515,6 +642,7 @@ async function deleteClient(phone) {
    Dashboard Stats (local)
    ========================= */
 async function updateDashboardStatsFromClients() {
+  if (!document.querySelector("#totalClients, #todaysVisits, #monthlyRevenue, #dailyRevenue, #availableServices, #visitTrendChart")) return;
   const tx = await createTransaction("clients", "readonly", "Updating dashboard stats");
   const store = tx.objectStore("clients");
 
@@ -701,7 +829,7 @@ function seedServices() {}
 /* =========================
    Theme + role gating
    ========================= */
-document.getElementById("clientSearchInput")?.addEventListener("input", loadClients);
+document.getElementById("clientSearchInput")?.addEventListener("input", scheduleClientsSearch);
 document.getElementById("serviceFilter")?.addEventListener("change", loadClients);
 
 const darkToggle = document.getElementById("toggleDark");
@@ -739,7 +867,11 @@ function printClientsTable() {
     return;
   }
   const printWindow = window.open('', '_blank');
-  const tableHTML = table.outerHTML;
+  const exportTable = table.cloneNode(true);
+  const exportRows = document.createDocumentFragment();
+  filteredClientsView().forEach(c => exportRows.appendChild(createClientRow(c, false)));
+  exportTable.querySelector('tbody').replaceChildren(exportRows);
+  const tableHTML = exportTable.outerHTML;
   const style = `
     <style>
       body { font-family: Arial; padding: 20px; }
@@ -749,8 +881,11 @@ function printClientsTable() {
     </style>
   `;
   printWindow.document.write(`
-    <html>
-      <head><title>Print Clients</title>${style}</head>
+    <html data-salon-private>
+      <head><title>Print Clients</title>${style}
+        <style id="salon-access-shield">html{visibility:hidden!important}</style>
+        <script src="${escapeClientHTML(new URL('auth.js', location.href).href)}"></script>
+      </head>
       <body>
         <h2>Sista Sista Salon - Client List</h2>
         ${tableHTML}
@@ -1025,3 +1160,5 @@ window.addEventListener("load", () => {
   // Final pass to ensure per-card share icons appear even if another script rendered earlier
   wireReservationsPage();
 });
+
+window.addEventListener("salon:clients-updated", refreshAppData);

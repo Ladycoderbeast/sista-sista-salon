@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+  <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
   <title>Dashboard</title>
   <style>
@@ -212,16 +213,16 @@
   <div class="dashboard-container">
     <aside class="sidebar">
       <div class="sidebar-logo"><img src="assets/sista-sista-logo.png" alt="Sista Sista Logo"/></div>
-      <nav class="sidebar-nav">
-        <a href="dashboard.html" class="active"><i class="fas fa-home"></i> Dashboard</a>
-        <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
-        <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
-        <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
-        <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
-        <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
-        <a href="reports.html"><i class="fas fa-chart-line"></i> Reports</a>
-        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
-        <a href="index.html" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <a href="dashboard.html" class="active" aria-current="page"><i class="fas fa-home" aria-hidden="true"></i> Dashboard</a>
+        <a href="clients.html"><i class="fas fa-users" aria-hidden="true"></i> Clients</a>
+        <a href="services.html"><i class="fas fa-scissors" aria-hidden="true"></i> Services</a>
+        <a href="notepad.html"><i class="fas fa-note-sticky" aria-hidden="true"></i> Notepad</a>
+        <a href="reviews.html"><i class="fas fa-comments" aria-hidden="true"></i> Reviews</a>
+        <a href="reservations.html"><i class="fas fa-calendar-check" aria-hidden="true"></i> Bookings</a>
+        <a href="reports.html"><i class="fas fa-chart-line" aria-hidden="true"></i> Reports</a>
+        <a href="revenue.html"><i class="fas fa-table" aria-hidden="true"></i> Revenue Summary</a>
+        <a href="index.html" id="logoutBtn" data-logout><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout</a>
       </nav>
     </aside>
 
@@ -339,8 +340,12 @@
       const dashboardDb = window.ensureSalonDbReady
         ? await window.ensureSalonDbReady()
         : await new Promise((resolve, reject) => {
-            const fallbackRequest = indexedDB.open("SalonDB", 1);
-            fallbackRequest.onsuccess = (event) => resolve(event.target.result);
+            const fallbackRequest = indexedDB.open("SalonDB");
+            fallbackRequest.onsuccess = (event) => {
+              const connection = event.target.result;
+              connection.onversionchange = () => connection.close();
+              resolve(connection);
+            };
             fallbackRequest.onerror = (event) => reject(event.target.error);
           });
 
@@ -361,6 +366,7 @@
       }
 
       loadCalendarVisits();
+      window.addEventListener('salon:clients-updated', loadCalendarVisits);
 
       if (typeof getTotalClients === "function") {
         getTotalClients(total => { document.getElementById("totalClients").textContent = total; });
@@ -623,8 +629,8 @@ container.style.justifyContent = isDesktop ? "flex-start" : "center";
     }
 
     if (!db) {
-      const req = indexedDB.open("SalonDB", 1);
-      req.onsuccess = () => { db = req.result; deleteReservation(id); };
+      const req = indexedDB.open("SalonDB");
+      req.onsuccess = () => { db = req.result; db.onversionchange = () => db.close(); deleteReservation(id); };
       req.onerror = () => (typeof showToast === "function") && showToast("DB open failed");
       return;
     }

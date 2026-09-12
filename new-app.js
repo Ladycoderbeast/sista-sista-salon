@@ -34,10 +34,9 @@ document.getElementById("reviewForm").addEventListener("submit", function (e) {
   const tx = reviewDb.transaction("reviews", "readwrite");
   const store = tx.objectStore("reviews");
   store.add(review);
-  showToast("Review submitted successfully!");
-
-
+  tx.onerror = tx.onabort = () => showToast("Could not save the review. Please try again.");
   tx.oncomplete = () => {
+    showToast("Review submitted successfully!");
     document.getElementById("reviewForm").reset();
     renderReviews();
   };
@@ -47,9 +46,10 @@ function populateServiceFilterDropdown() {
   const serviceFilter = document.getElementById("serviceFilter");
   serviceFilter.innerHTML = `<option value="All">All Services</option>`; // reset
 
-  const salonDbRequest = indexedDB.open("SalonDB", 1);
+  const salonDbRequest = indexedDB.open("SalonDB");
   salonDbRequest.onsuccess = function (e) {
     const salonDb = e.target.result;
+        salonDb.onversionchange = () => salonDb.close();
     const tx = salonDb.transaction("services", "readonly");
     const store = tx.objectStore("services");
     const request = store.openCursor();
@@ -87,13 +87,11 @@ function renderReviews() {
     if (cursor) {
       const { name, service, rating, message, date } = cursor.value;
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${name}</td>
-        <td>${service}</td>
-        <td>${"⭐".repeat(rating)}</td>
-        <td>${message}</td>
-        <td>${date}</td>
-      `;
+      [name, service, "⭐".repeat(Math.max(0, Math.min(5, Number(rating) || 0))), message, date].forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = value || '';
+        tr.appendChild(cell);
+      });
       tbody.appendChild(tr);
       cursor.continue();
     }
@@ -163,3 +161,5 @@ document.getElementById('serviceFilter').addEventListener('change', function () 
     }
   });
 });
+
+window.addEventListener('storage', e => { if (e.key === 'salon_reviews_changed' && reviewDb) renderReviews(); });

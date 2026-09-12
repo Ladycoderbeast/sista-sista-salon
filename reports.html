@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Reports | Sista Sista Salon & Spa</title>
+  <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
@@ -148,16 +149,16 @@
       <div class="sidebar-logo">
         <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
       </div>
-      <nav class="sidebar-nav">
-        <a href="dashboard.html"><i class="fas fa-home"></i> Dashboard</a>
-        <a href="clients.html"><i class="fas fa-users"></i> Clients</a>
-        <a href="services.html"><i class="fas fa-scissors"></i> Services</a>
-        <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
-        <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
-        <a href="reservations.html"><i class="fas fa-calendar-check"></i> Bookings</a>
-        <a href="reports.html" class="active"><i class="fas fa-chart-line"></i> Reports</a>
-        <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
-        <a href="index.html" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <a href="dashboard.html"><i class="fas fa-home" aria-hidden="true"></i> Dashboard</a>
+        <a href="clients.html"><i class="fas fa-users" aria-hidden="true"></i> Clients</a>
+        <a href="services.html"><i class="fas fa-scissors" aria-hidden="true"></i> Services</a>
+        <a href="notepad.html"><i class="fas fa-note-sticky" aria-hidden="true"></i> Notepad</a>
+        <a href="reviews.html"><i class="fas fa-comments" aria-hidden="true"></i> Reviews</a>
+        <a href="reservations.html"><i class="fas fa-calendar-check" aria-hidden="true"></i> Bookings</a>
+        <a href="reports.html" class="active" aria-current="page"><i class="fas fa-chart-line" aria-hidden="true"></i> Reports</a>
+        <a href="revenue.html"><i class="fas fa-table" aria-hidden="true"></i> Revenue Summary</a>
+        <a href="index.html" id="logoutBtn" data-logout><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout</a>
       </nav>
     </aside>
 
@@ -243,21 +244,22 @@ if (toggleDark) {
         dailyRevenue: {}
       };
 
-      const request = indexedDB.open("SalonDB", 1);
+      const request = indexedDB.open("SalonDB");
 request.onsuccess = function (e) {
   const db = e.target.result;
+        db.onversionchange = () => db.close();
   const tx = db.transaction("clients", "readonly");
   const store = tx.objectStore("clients");
 
   const req = store.getAll();
   req.onsuccess = () => {
     const clients = req.result;
-    const serviceCount = {};
+    const serviceCount = Object.create(null);
 
     clients.forEach(client => {
       const amount = parseFloat(client.amount) || 0;
       const date = client.date;
-      const service = client.service;
+      const services = Array.isArray(client.services) ? client.services : (client.service ? [client.service] : []);
 
       reportData.totalVisits++;
       if (showRevenue) {
@@ -267,9 +269,9 @@ request.onsuccess = function (e) {
         }
       }
 
-      if (service) {
-        serviceCount[service] = (serviceCount[service] || 0) + 1;
-      }
+      services.forEach(service => {
+        if (service) serviceCount[service] = (serviceCount[service] || 0) + 1;
+      });
     });
 
     const top = Object.entries(serviceCount).sort((a, b) => b[1] - a[1])[0];
@@ -279,9 +281,12 @@ request.onsuccess = function (e) {
       <div class="report-card"><h3>Total Clients</h3><p>${reportData.totalVisits}</p></div>
       ${showRevenue ? `
         <div class="report-card"><h3>Total Revenue</h3><p>GHS ${reportData.totalRevenue.toFixed(2)}</p></div>
-        <div class="report-card"><h3>Top Service</h3><p>${reportData.topService}</p></div>
+        <div class="report-card"><h3>Top Service</h3><p id="reportTopService"></p></div>
       ` : ""}
     `;
+
+    const topServiceEl = document.getElementById('reportTopService');
+    if (topServiceEl) topServiceEl.textContent = reportData.topService;
 
     if (showRevenue) {
       const labels = Object.keys(reportData.dailyRevenue).sort();
@@ -358,5 +363,6 @@ request.onsuccess = function (e) {
 
 
   <script src="user-icon.js"></script>
+<script>window.addEventListener('salon:clients-updated', () => location.reload());</script>
 </body>
 </html>

@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <style id="salon-access-shield">html{visibility:hidden!important}</style>
+  <script src="auth.js"></script>
   <!-- Fullscreen on iPad (uses the whole safe area) -->
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Login | Sista Sista Salon & Spa</title>
@@ -370,7 +372,7 @@
           localStorage.setItem("role", role);
           localStorage.setItem("username", username);
           const next = new URLSearchParams(location.search).get("next") || "dashboard.html";
-          location.href = next;
+          location.href = /^[a-z-]+\.html$/.test(next) ? next : 'dashboard.html';
         } else {
           loginError.style.display = "block";
         }

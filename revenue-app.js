@@ -2,7 +2,7 @@
 Chart.register(ChartDataLabels);
 
 let db;
-const request = indexedDB.open("SalonDB", 1);
+const request = indexedDB.open("SalonDB");
 
 request.onupgradeneeded = function (e) {
   db = e.target.result;
@@ -13,6 +13,7 @@ request.onupgradeneeded = function (e) {
 
 request.onsuccess = function (e) {
   db = e.target.result;
+  db.onversionchange = () => db.close();
   updateRevenueSummary();
 };
 
@@ -178,3 +179,5 @@ function exportRevenueCSV() {
   link.download = "revenue-summary.csv";
   link.click();
 }
+
+window.addEventListener('salon:clients-updated', () => { if (db) updateRevenueSummary(); });

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Clients | Sista Sista Salon & Spa</title>
+  <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
 
   <link rel="stylesheet" href="style.css" />
@@ -74,17 +75,17 @@
     <div class="sidebar-logo">
       <img src="assets/sista-sista-logo.png" alt="Sista Sista Logo" />
     </div>
-    <div class="sidebar-nav">
-      <a href="dashboard.html"><i class="fa fa-home"></i> Dashboard</a>
-      <a href="clients.html" class="active"><i class="fa fa-users"></i> Clients</a>
-      <a href="services.html"><i class="fa fa-scissors"></i> Services</a>
-      <a href="notepad.html"><i class="fas fa-note-sticky"></i> Notepad</a>
-      <a href="reviews.html"><i class="fa fa-comments"></i> Reviews</a>
-      <a href="reservations.html"><i class="fa fa-calendar"></i> Bookings</a>
-      <a href="reports.html"><i class="fa fa-chart-line"></i> Reports</a>
-      <a href="revenue.html" class="active"><i class="fa fa-table"></i> Revenue Summary</a>
-      <a href="index.html"><i class="fa fa-sign-out-alt"></i> Logout</a>
-    </div>
+    <div class="sidebar-nav" aria-label="Main navigation">
+        <a href="dashboard.html"><i class="fas fa-home" aria-hidden="true"></i> Dashboard</a>
+        <a href="clients.html" class="active" aria-current="page"><i class="fas fa-users" aria-hidden="true"></i> Clients</a>
+        <a href="services.html"><i class="fas fa-scissors" aria-hidden="true"></i> Services</a>
+        <a href="notepad.html"><i class="fas fa-note-sticky" aria-hidden="true"></i> Notepad</a>
+        <a href="reviews.html"><i class="fas fa-comments" aria-hidden="true"></i> Reviews</a>
+        <a href="reservations.html"><i class="fas fa-calendar-check" aria-hidden="true"></i> Bookings</a>
+        <a href="reports.html"><i class="fas fa-chart-line" aria-hidden="true"></i> Reports</a>
+        <a href="revenue.html"><i class="fas fa-table" aria-hidden="true"></i> Revenue Summary</a>
+        <a href="index.html" id="logoutBtn" data-logout><i class="fas fa-sign-out-alt" aria-hidden="true"></i> Logout</a>
+      </div>
   </div>
 
   <!-- Main Content -->
@@ -171,6 +172,11 @@
             <!-- Populated by JS -->
           </tbody>
         </table>
+        <div style="display:flex;gap:12px;align-items:center;padding:16px 0;">
+          <button id="clientsPrevious" type="button" class="btn" disabled>Previous</button>
+          <span id="clientsPageStatus" role="status" aria-live="polite"></span>
+          <button id="clientsNext" type="button" class="btn" disabled>Next</button>
+        </div>
       </div>
     </div>
   </main>
@@ -252,11 +258,7 @@
     const headers = [];
 
     table.querySelectorAll("thead th").forEach(th => headers.push(th.innerText.trim()));
-    table.querySelectorAll("tbody tr").forEach(row => {
-      const rowData = [];
-      row.querySelectorAll("td").forEach(td => rowData.push(td.innerText.trim()));
-      rows.push(rowData);
-    });
+    filteredClientsView().forEach(client => rows.push(clientExportCells(client)));
 
     doc.autoTable({ head: [headers], body: rows, styles: { fontSize: 8 }, theme: 'grid' });
     doc.save("sista_sista_clients.pdf");
@@ -378,10 +380,11 @@
 
   async function loadServicesFromDB(){
     return new Promise(resolve=>{
-      const req = indexedDB.open("SalonDB", 1);
+      const req = indexedDB.open("SalonDB");
       req.onerror = ()=> resolve([]);
       req.onsuccess = e=>{
         const _db = e.target.result;
+        _db.onversionchange = () => _db.close();
         if (!_db.objectStoreNames.contains("services")){
           resolve([]); return;
         }
@@ -422,112 +425,33 @@
 
 <!-- Page-local filtering (scope + clickable cards) -->
 <script>
-  // Helpers
-  function todayStr() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,'0');
-    const day = String(d.getDate()).padStart(2,'0');
-    return `${y}-${m}-${day}`;
-  }
-
-  // State
-  let CLIENTS_SCOPE = 'today';     // 'today' | 'all'
-  let CARD_FILTER   = 'total';     // 'total' | 'returning' | 'new' | 'female' | 'male'
-
-  // Apply filters to the already-rendered table rows
-  function applyTableFilters() {
-    const tbody = document.querySelector('#clientsTable tbody');
-    if (!tbody) return;
-
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    const isToday = (dateStr) => (CLIENTS_SCOPE === 'today' ? dateStr === todayStr() : true);
-
-    // Pre-count phones to detect returning/new in the current scope
-    const phoneCount = {};
-    rows.forEach(tr => {
-      const tds = tr.querySelectorAll('td');
-      const date = (tds[5]?.textContent || '').trim();
-      if (!isToday(date)) return;
-      const phone = (tds[1]?.textContent || '').trim();
-      phoneCount[phone] = (phoneCount[phone] || 0) + 1;
+  let CLIENTS_SCOPE = 'today';
+  let CARD_FILTER = 'total';
+  window.getClientsViewOptions = () => ({ scope: CLIENTS_SCOPE, card: CARD_FILTER });
+  document.getElementById('clientsScopeToday').checked = true;
+  document.querySelectorAll('input[name="clientsScope"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (!radio.checked) return;
+      CLIENTS_SCOPE = radio.value;
+      loadClients();
     });
-
-    rows.forEach(tr => {
-      const tds = tr.querySelectorAll('td');
-      const gender = (tds[2]?.textContent || '').trim();
-      const date   = (tds[5]?.textContent || '').trim();
-      const phone  = (tds[1]?.textContent || '').trim();
-
-      let visible = true;
-
-      // Scope first
-      if (!isToday(date)) visible = false;
-
-      // Card filter
-      if (visible) {
-        switch (CARD_FILTER) {
-          case 'female': visible = (gender === 'Female'); break;
-          case 'male':   visible = (gender === 'Male');   break;
-          case 'new':    visible = (phoneCount[phone] === 1); break;
-          case 'returning': visible = (phoneCount[phone] > 1); break;
-          default: /* total */ break;
-        }
-      }
-
-      tr.style.display = visible ? '' : 'none';
-    });
-
-    // badge text
-    const badge = document.getElementById('activeCardFilter');
-    const label = CARD_FILTER.charAt(0).toUpperCase() + CARD_FILTER.slice(1);
-    badge.textContent = (CARD_FILTER === 'total' ? '' : `Filtered: ${label} (${CLIENTS_SCOPE})`);
-  }
-
-  // Re-apply after app.js populates table (and whenever search/filter changes)
-  const reapply = () => setTimeout(applyTableFilters, 0);
-  window.reapplyClientsTableFilters = reapply;
-
-  // Wire radios + clear
-  document.getElementById('clientsScopeToday')?.addEventListener('change', e => {
-    if (e.target.checked) { CLIENTS_SCOPE = 'today'; reapply(); }
   });
-  document.getElementById('clientsScopeAll')?.addEventListener('change', e => {
-    if (e.target.checked) { CLIENTS_SCOPE = 'all'; reapply(); }
-  });
-  document.getElementById('clearCardFilter')?.addEventListener('click', () => {
+  document.getElementById('clearCardFilter').addEventListener('click', () => {
     CARD_FILTER = 'total';
+    CLIENTS_SCOPE = 'today';
+    document.getElementById('clientsScopeToday').checked = true;
     document.getElementById('clientSearchInput').value = '';
     document.getElementById('serviceFilter').value = '';
-    // default back to Today
-    document.getElementById('clientsScopeToday').checked = true;
-    CLIENTS_SCOPE = 'today';
-    reapply();
+    loadClients();
   });
-
-  // Make cards clickable
   document.querySelectorAll('.summary-card').forEach(btn => {
     btn.addEventListener('click', () => {
       CARD_FILTER = btn.getAttribute('data-card-filter') || 'total';
-      reapply();
+      renderClientsView();
     });
   });
-
-  // Also reapply when search/service filter changes (so hidden rows stay hidden)
-  document.getElementById('clientSearchInput')?.addEventListener('input', reapply);
-  document.getElementById('serviceFilter')?.addEventListener('change', reapply);
-
-  // Default selection: Today
-  window.addEventListener('DOMContentLoaded', () => {
-    const todayRadio = document.getElementById('clientsScopeToday');
-    if (todayRadio) todayRadio.checked = true;
-    // after app.js renders on page load, run one pass
-    setTimeout(applyTableFilters, 250);
-  });
-
-  // Re-apply again a moment later (covers slower IndexedDB renders)
-  window.addEventListener('load', () => setTimeout(applyTableFilters, 600));
+  document.getElementById('clientsPrevious').addEventListener('click', () => changeClientsPage(-1));
+  document.getElementById('clientsNext').addEventListener('click', () => changeClientsPage(1));
 </script>
-
 </body>
 </html>

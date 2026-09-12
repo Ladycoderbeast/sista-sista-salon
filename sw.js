@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v8';
+const CACHE_NAME = 'sista-sista-cache-v11';
 
 const CORE_ASSETS = [
   './',
@@ -12,7 +12,16 @@ const CORE_ASSETS = [
   './calendar.html',
   './reviews.html',
   './revenue.html',
-  './notepad.html',          // ✅ new
+  './notepad.html',
+  './checkin.html',
+  './checkin.css',
+  './checkin-layout.js',
+  './checkin.js',
+  './new-app.js',
+  './checkin-services.js',
+  './notepad.js',
+  './visit-store.js',
+  './auth.js',
   './offline.html',
 
   './style.css',
@@ -32,16 +41,21 @@ const CORE_ASSETS = [
   './assets/sista-sista-logo.png',
 ];
 
+const REQUIRED_ASSETS = new Set(CORE_ASSETS.filter(url => /\.(html|js|css)$/.test(url) && !url.includes('/assets/')));
+
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
-    // Tolerate a missing asset rather than failing the whole install
-    await Promise.allSettled(
+    // Keep the previous release if essential pages/scripts cannot be cached together.
+    await Promise.all(
       CORE_ASSETS.map(async (url) => {
         try {
           const res = await fetch(url, { cache: 'no-cache' });
-          if (res.ok) await cache.put(url, res.clone());
-        } catch (_) {}
+          if (!res.ok) throw new Error(`Could not cache ${url}`);
+          await cache.put(url, res.clone());
+        } catch (error) {
+          if (REQUIRED_ASSETS.has(url)) throw error;
+        }
       })
     );
   })());
