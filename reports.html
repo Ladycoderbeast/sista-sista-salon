@@ -11,6 +11,7 @@
   <title>Reports | Sista Sista Salon & Spa</title>
   <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
+  <script src="revenue-math.js"></script>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
@@ -245,6 +246,7 @@ if (toggleDark) {
       let reportData = {
         totalVisits: 0,
         totalRevenue: 0,
+        invalidRevenue: 0,
         topService: "N/A",
         dailyRevenue: {}
       };
@@ -262,12 +264,14 @@ request.onsuccess = function (e) {
     const serviceCount = Object.create(null);
 
     clients.forEach(client => {
-      const amount = parseFloat(client.amount) || 0;
+      const paid = SalonRevenue.cents(client.amount);
+      const amount = paid === null ? 0 : paid;
       const date = client.date;
+      if (paid === null || !SalonRevenue.parseDate(date)) reportData.invalidRevenue++;
       const services = Array.isArray(client.services) ? client.services : (client.service ? [client.service] : []);
 
       reportData.totalVisits++;
-      if (showRevenue) {
+      if (showRevenue && paid !== null && SalonRevenue.parseDate(date)) {
         reportData.totalRevenue += amount;
         if (date) {
           reportData.dailyRevenue[date] = (reportData.dailyRevenue[date] || 0) + amount;
@@ -285,17 +289,20 @@ request.onsuccess = function (e) {
     cardsEl.innerHTML = `
       <div class="report-card"><h3>Total Clients</h3><p>${reportData.totalVisits}</p></div>
       ${showRevenue ? `
-        <div class="report-card"><h3>Total Revenue</h3><p>GHS ${reportData.totalRevenue.toFixed(2)}</p></div>
+        <div class="report-card"><h3>Total Revenue</h3><p>GHS ${(reportData.totalRevenue / 100).toFixed(2)}</p></div>
         <div class="report-card"><h3>Top Service</h3><p id="reportTopService"></p></div>
       ` : ""}
     `;
 
+    let warning = document.getElementById('reportRevenueWarning');
+    if (!warning) { warning = document.createElement('p'); warning.id = 'reportRevenueWarning'; warning.setAttribute('role', 'status'); cardsEl.after(warning); }
+    warning.textContent = SalonRevenue.warning(reportData.invalidRevenue);
     const topServiceEl = document.getElementById('reportTopService');
     if (topServiceEl) topServiceEl.textContent = reportData.topService;
 
     if (showRevenue) {
       const labels = Object.keys(reportData.dailyRevenue).sort();
-      const values = labels.map(date => reportData.dailyRevenue[date]);
+      const values = labels.map(date => reportData.dailyRevenue[date] / 100);
 
       new Chart(revenueChartCtx, {
         type: 'line',
@@ -333,12 +340,12 @@ request.onsuccess = function (e) {
         doc.text(`Total Visits: ${reportData.totalVisits}`, 15, line); line += 10;
 
         if (showRevenue) {
-          doc.text(`Total Revenue: GHS ${reportData.totalRevenue.toFixed(2)}`, 15, line); line += 10;
+          doc.text(`Total Revenue: GHS ${(reportData.totalRevenue / 100).toFixed(2)}`, 15, line); line += 10;
           doc.text(`Top Service: ${reportData.topService}`, 15, line); line += 10;
 
           const tableData = Object.entries(reportData.dailyRevenue)
             .sort((a, b) => a[0].localeCompare(b[0]))
-            .map(([date, amt]) => [date, `GHS ${amt.toFixed(2)}`]);
+            .map(([date, amt]) => [date, `GHS ${(amt / 100).toFixed(2)}`]);
 
           doc.autoTable({
             head: [["Date", "Revenue"]],

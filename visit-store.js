@@ -107,9 +107,9 @@
   async function approve(id, input) {
     const user = SalonAccess.requireStaff();
     const name = text(input.name), phone = text(input.phone, 40), chosen = services(input.services);
-    const staff = text(input.staff), amount = Number(input.amount), date = text(input.date, 10);
+    const staff = text(input.staff), paid = SalonRevenue.cents(input.amount), date = text(input.date, 10);
     if (!name || !phone || !chosen.length || chosen.includes('Help me choose') || !staff ||
-      text(input.amount) === '' || !Number.isFinite(amount) || amount < 0 || !validDate(date) ||
+      text(input.amount) === '' || paid === null || !validDate(date) ||
       !['Cash', 'Mobile Money'].includes(input.paymentMethod)) {
       throw new Error('Confirm the name, phone, actual services, workers, visit date, amount paid and payment method.');
     }
@@ -126,7 +126,7 @@
       if (entry.status === 'completed') { clientId = entry.clientId; return; }
       const completedAt = Date.now();
       const record = { name, phone, gender: ['Female', 'Male'].includes(input.gender) ? input.gender : '',
-        services: chosen, staff, amount: amount.toFixed(2), paymentMethod: input.paymentMethod,
+        services: chosen, staff, amount: (paid / 100).toFixed(2), paymentMethod: input.paymentMethod,
         date, time: entry.time, photoData: '', checkinId: id, completedAt, approvedBy: user.username };
       const add = tx.objectStore('clients').add(record);
       add.onsuccess = () => {

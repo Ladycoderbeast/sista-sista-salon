@@ -10,7 +10,7 @@ These development-only tests use jsdom and fake-indexeddb; the offline app has n
 The 5,001-record fixture checks that Today visits only matching records. It measures work avoided, not actual iPad latency. Photo tests verify sizing and error handling with mocked canvas/image decoding; review image quality and performance on the iPad before release.
 
 Release notes:
-- Ship all changed pages/scripts together with service worker cache v11.
+- Ship all changed pages/scripts together with service worker cache v14.
 - SalonDB version 3 adds the date index, pending check-ins, and unique submission/approval indexes without rewriting existing client records or photos. Other pages open the current version to remain compatible.
 - If an older open tab blocks the upgrade, close the other salon tabs and reopen. The app displays a message for this case.
 - Client lists display 50 rows per page, newest entries first. Cards count matching records across pages in the selected Today/All scope. PDF and print cover all matching records; CSV retains its existing full-history behavior.
@@ -30,3 +30,9 @@ The lock is an offline application navigation/session control, not an operating-
 Before release, verify the flow in the installed iPad app offline: start customer mode, try Back/reopen/direct private pages, submit, unlock with the existing staff PIN, approve, and check Clients/dashboard/reports. Automated tests use jsdom/fake-indexeddb plus real PIN hashing; they do not replace Safari navigation, keyboard, print, or device testing.
 
 Reviews remain on the separate staff Reviews page. Notepad and customer check-in have no review form or review invitation buttons.
+
+Revenue calculations:
+- Dashboard and Revenue Summary share local calendar date handling and sum whole pesewas. Weeks run Monday–Sunday, including weeks crossing New Year; months and years follow calendar boundaries.
+- Revenue uses the visit date and amount paid. Pending or cancelled check-ins do not count. Selecting a historical date updates all four summary periods; charts show the selected calendar year's records.
+- Invalid dates or amounts are excluded with a visible warning. Failed summary reads clear stale figures and disable exports. Existing saved records are not rewritten.
+- Automated coverage includes five device time zones, midnight, daylight-saving changes, leap days, year boundaries, decimal sums, historical selection, missing chart libraries, failed reads and overlapping refreshes.

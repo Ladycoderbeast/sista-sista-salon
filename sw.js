@@ -1,5 +1,5 @@
 // sw.js
-const CACHE_NAME = 'sista-sista-cache-v13';
+const CACHE_NAME = 'sista-sista-cache-v14';
 
 const CORE_ASSETS = [
   './',
@@ -28,6 +28,7 @@ const CORE_ASSETS = [
   './login.css',
 
   './app.js',
+  './revenue-math.js',
   './user-icon.js',
   './manifest.json',
 

@@ -28,6 +28,7 @@ async function setup(t, records = []) {
   old.close();
   const dom = new JSDOM(html, { runScripts: 'outside-only', url: 'https://salon.test/clients.html' });
   const w = dom.window;
+  w.eval(fs.readFileSync(path.join(root, 'revenue-math.js'), 'utf8'));
   w.indexedDB = indexedDB;
   w.console = { log() {}, error() {} };
   w.showToast = () => {};

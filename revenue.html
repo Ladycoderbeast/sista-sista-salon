@@ -11,6 +11,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
+  <script src="revenue-math.js"></script>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
@@ -233,35 +234,25 @@ canvas {
       <div class="table-wrapper">
   <h2>📊 Revenue Summary Report</h2>
 
-  <div style="display: flex; justify-content: flex-end; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; flex-wrap:wrap; justify-content: flex-end; align-items: center; gap: 1rem; margin-bottom: 1.5rem;">
     <label for="yearSelect" style="font-weight: 500; margin-right: 0.5rem;">Select Year:</label>
     <select id="yearSelect" style="padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc;"></select>
 
+    <label for="revenueDate">Select date:</label>
+    <input id="revenueDate" type="date" style="padding:8px;font-size:16px;max-width:100%;">
     <button id="exportCSV" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export CSV</button>
     <button id="exportPDF" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Export PDF</button>
     <button id="printButton" style="padding: 6px 12px; background: black; color: white; border: none; border-radius: 6px; cursor: pointer;">Print</button>
   </div>
 
-  <script>
-    // Populate the year dropdown automatically
-    const yearSelect = document.getElementById("yearSelect");
-    const currentYear = new Date().getFullYear();
-    const numYears = 4; // current year + last 3 years
 
-    for (let i = 0; i < numYears; i++) {
-      const year = currentYear - i;
-      const option = document.createElement("option");
-      option.value = year;
-      option.textContent = year;
-      if (i === 0) option.selected = true; // current year selected by default
-      yearSelect.appendChild(option);
-    }
-  </script>
 </div>
 
 
 
 
+        <p style="margin:12px 0;line-height:1.5;">Totals use the selected date and the iPad’s local calendar. Weeks run Monday–Sunday. Revenue is the amount paid recorded against each visit date.</p>
+        <p id="revenueStatus" role="status" style="margin:12px 0;">Loading revenue…</p>
         <table class="revenue-table" id="revenueTable">
           <thead>
             <tr>
@@ -269,12 +260,7 @@ canvas {
               <th>Revenue (GHS)</th>
             </tr>
           </thead>
-          <tbody>
-            <tr><td>Daily Revenue</td><td>GHS 390</td></tr>
-            <tr><td>Weekly Revenue</td><td>GHS 2,750</td></tr>
-            <tr><td>Monthly Revenue</td><td>GHS 11,000</td></tr>
-            <tr><td>Yearly Revenue</td><td>GHS 132,000</td></tr>
-          </tbody>
+          <tbody><tr><td colspan="2">Loading revenue…</td></tr></tbody>
         </table>
 
         <div class="revenue-chart-wrapper">
@@ -289,6 +275,7 @@ canvas {
 </div>
 
 <h3 style="text-align:left; margin-bottom: 1rem;">📊 Revenue Trend</h3>
+<p id="revenueChartNotice" style="margin:12px 0;line-height:1.5;"></p>
 <canvas id="monthlyRevenueChart"></canvas>
 
 </div>
@@ -316,9 +303,7 @@ canvas {
   <!-- Scripts -->
   <script src="revenue-app.js"></script>
   <script src="user-icon.js"></script>
-  <script>
-  updateRevenueSummary(); // triggers table and chart update on first load
-</script>
+
   <script>
     // Dark Mode Logic
     const toggleDark = document.getElementById("toggleDark");

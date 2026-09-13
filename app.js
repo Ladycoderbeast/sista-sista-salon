@@ -129,7 +129,6 @@ async function createTransaction(storeName, mode, context) {
 
 async function refreshAppData() {
   await Promise.allSettled([
-    updateRevenueTrend(),
     checkUpcomingReservations(),
     loadClients(),
     updateDashboardStatsFromClients()
@@ -279,54 +278,8 @@ function parseLocalDate(dateStr) {
    Trend (local days)
    ========================= */
 async function updateRevenueTrend() {
-  if (!document.getElementById("revenueTrend")) return;
-  const tx = await createTransaction("clients", "readonly", "Updating revenue trend");
-  const store = tx.objectStore("clients");
-
-  const todayStr = localDateStr();
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  const yesterdayStr = localDateStr(y);
-
-  let todayTotal = 0;
-  let yesterdayTotal = 0;
-
-  store.openCursor().onsuccess = function (e) {
-    const cursor = e.target.result;
-    if (cursor) {
-      const c = cursor.value;
-      if (c.date === todayStr) {
-        todayTotal += parseFloat(c.amount || 0);
-      } else if (c.date === yesterdayStr) {
-        yesterdayTotal += parseFloat(c.amount || 0);
-      }
-      cursor.continue();
-    } else {
-      const trendEl = document.getElementById("revenueTrend");
-      if (!trendEl) return;
-
-      if (yesterdayTotal === 0 && todayTotal > 0) {
-        trendEl.textContent = "🔼 +100% from yesterday";
-        trendEl.className = "trend-indicator up";
-      } else if (yesterdayTotal === 0 && todayTotal === 0) {
-        trendEl.textContent = "No revenue yet";
-        trendEl.className = "trend-indicator";
-      } else {
-        const diff = todayTotal - yesterdayTotal;
-        const percent = Math.abs((diff / yesterdayTotal) * 100).toFixed(1);
-        if (diff > 0) {
-          trendEl.textContent = `🔼 +${percent}% from yesterday`;
-          trendEl.className = "trend-indicator up";
-        } else if (diff < 0) {
-          trendEl.textContent = `🔽 -${percent}% from yesterday`;
-          trendEl.className = "trend-indicator down";
-        } else {
-          trendEl.textContent = "No change from yesterday";
-          trendEl.className = "trend-indicator";
-        }
-      }
-    }
-  };
+  if (!document.getElementById('revenueTrend')) return;
+  return updateDashboardStatsFromClients();
 }
 
 /* =========================
@@ -396,6 +349,11 @@ async function addClient() {
   const dateInput = document.getElementById("clientDate")?.value || "";
   const date = dateInput || localDateStr(); // local day
   const paymentMethod = document.getElementById("clientPaymentMethod")?.value || "Cash";
+
+  if (SalonRevenue.cents(amount) === null || !SalonRevenue.parseDate(date)) {
+    showToast('Enter a valid date and a non-negative amount with at most two decimal places.');
+    return;
+  }
 
   // require at least one service since UI is multi-select
   if (!name || !phone || !gender || services.length === 0 || !time || !staff) {
@@ -642,83 +600,55 @@ async function deleteClient(phone) {
    Dashboard Stats (local)
    ========================= */
 async function updateDashboardStatsFromClients() {
-  if (!document.querySelector("#totalClients, #todaysVisits, #monthlyRevenue, #dailyRevenue, #availableServices, #visitTrendChart")) return;
-  const tx = await createTransaction("clients", "readonly", "Updating dashboard stats");
-  const store = tx.objectStore("clients");
-
-  const now = new Date();
-  const todayStr = localDateStr(now);
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  let todayVisits = 0;
-  let revenue = 0;
-  let todaySales = 0;
-  const servicesSet = new Set();
-  const uniqueClients = new Set();
-  const weekly = Array(7).fill(0);
-
-  store.openCursor().onsuccess = function (e) {
-    const cursor = e.target.result;
-    if (cursor) {
-      const c = cursor.value;
-      const visitDate = parseLocalDate(c.date);
-      const key = `${c.name}_${c.phone}`;
-      uniqueClients.add(key);
-
-      const arr = Array.isArray(c.services) ? c.services : (c.service ? [c.service] : []);
-      arr.forEach(s => s && servicesSet.add(s));
-
-      if (c.date === todayStr) {
-        todayVisits++;
-        if (c.amount) todaySales += parseFloat(c.amount);
-      }
-
-      if (!isNaN(visitDate) && visitDate.getMonth() === month && visitDate.getFullYear() === year && c.amount) {
-        revenue += parseFloat(c.amount);
-      }
-
-      if (!isNaN(visitDate)) {
-        weekly[visitDate.getDay()]++;
-      }
-
-      cursor.continue();
-    } else {
-      const elTotalClients      = document.getElementById("totalClients");
-      const elTodaysVisits      = document.getElementById("todaysVisits");
-      const elMonthlyRevenue    = document.getElementById("monthlyRevenue");
-      const elDailyRevenue      = document.getElementById("dailyRevenue");
-      const elAvailableServices = document.getElementById("availableServices");
-
-      if (elTotalClients)      elTotalClients.textContent      = uniqueClients.size;
-      if (elTodaysVisits)      elTodaysVisits.textContent      = todayVisits;
-      if (elMonthlyRevenue)    elMonthlyRevenue.textContent    = `GHS ${revenue.toFixed(2)}`;
-      if (elDailyRevenue)      elDailyRevenue.textContent      = `GHS ${todaySales.toFixed(2)}`;
-      if (elAvailableServices) elAvailableServices.textContent = servicesSet.size;
-
-      if (typeof Chart !== "undefined") {
-        const ctx = document.getElementById("visitTrendChart")?.getContext("2d");
-        if (ctx) {
-          if (visitChart) visitChart.destroy();
-          visitChart = new Chart(ctx, {
-            type: "line",
-            data: {
-              labels: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-              datasets: [{
-                data: weekly,
-                backgroundColor: "rgba(170,38,38,0.1)",
-                borderColor: "#aa2626",
-                fill: true,
-                tension: 0.4,
-                pointRadius: 5
-              }]
-            },
-            options: { plugins: { legend: { display: false } } }
-          });
-        }
-      }
+  if (!document.querySelector('#totalClients, #todaysVisits, #monthlyRevenue, #dailyRevenue, #availableServices, #visitTrendChart')) return;
+  const version = (updateDashboardStatsFromClients.version || 0) + 1;
+  updateDashboardStatsFromClients.version = version;
+  const text = (id, value) => { const element = document.getElementById(id); if (element) element.textContent = value; };
+  try {
+    const totals = SalonRevenue.accumulator();
+    const tx = await createTransaction('clients', 'readonly', 'Updating dashboard totals');
+    await new Promise((resolve, reject) => {
+      let calculationError;
+      tx.oncomplete = resolve;
+      tx.onerror = tx.onabort = () => reject(calculationError || tx.error || new Error('Could not load dashboard totals.'));
+      tx.objectStore('clients').openCursor().onsuccess = e => {
+        const cursor = e.target.result;
+        if (!cursor || version !== updateDashboardStatsFromClients.version) return;
+        try { totals.include(cursor.value); cursor.continue(); }
+        catch (error) { calculationError = error; tx.abort(); }
+      };
+    });
+    if (version !== updateDashboardStatsFromClients.version) return;
+    text('totalClients', totals.clients.size);
+    text('todaysVisits', totals.todayVisits);
+    text('monthlyRevenue', SalonRevenue.money(totals.monthly));
+    text('dailyRevenue', SalonRevenue.money(totals.daily));
+    text('availableServices', totals.services.size);
+    text('dashboardRevenueNotice', SalonRevenue.warning(totals.invalid));
+    text('revenueTrend', SalonRevenue.trend(totals.daily, totals.yesterday));
+    const trend = document.getElementById('revenueTrend');
+    if (trend) trend.className = 'trend-indicator' + (totals.daily > totals.yesterday ? ' up' : totals.daily < totals.yesterday ? ' down' : '');
+    text('weeklyVisitRange', `${totals.start} to ${totals.end} · Monday–Sunday`);
+    const canvas = document.getElementById('visitTrendChart');
+    if (canvas && typeof Chart !== 'undefined') {
+      try {
+        if (visitChart) visitChart.destroy();
+        visitChart = new Chart(canvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], datasets: [{
+            data: totals.weeklyVisits, backgroundColor: 'rgba(170,38,38,0.1)', borderColor: '#aa2626',
+            fill: true, tension: 0.4, pointRadius: 5
+          }] },
+          options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+      } catch (error) { console.error('Visit chart could not be drawn', error); }
     }
-  };
+  } catch (error) {
+    if (version !== updateDashboardStatsFromClients.version) return;
+    for (const id of ['totalClients', 'todaysVisits', 'monthlyRevenue', 'dailyRevenue', 'availableServices']) text(id, '—');
+    text('revenueTrend', 'Revenue could not be loaded.');
+    text('dashboardRevenueNotice', error.message || 'Please reopen the page to retry.');
+  }
 }
 
 window.updateDashboardStatsFromClients = updateDashboardStatsFromClients;
@@ -1162,3 +1092,12 @@ window.addEventListener("load", () => {
 });
 
 window.addEventListener("salon:clients-updated", refreshAppData);
+
+let dashboardLocalDay = localDateStr();
+if (document.getElementById('dailyRevenue')) {
+  window.setInterval(() => {
+    if (document.hidden) return;
+    const today = localDateStr();
+    if (today !== dashboardLocalDay) { dashboardLocalDay = today; updateDashboardStatsFromClients(); }
+  }, 30000);
+}

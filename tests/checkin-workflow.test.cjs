@@ -10,6 +10,7 @@ const finish = tx => new Promise((resolve, reject) => { tx.oncomplete = resolve;
 async function setup(t) {
   const dom = new JSDOM('<body></body>', { runScripts: 'outside-only', url: 'https://salon.test/notepad.html' });
   const w = dom.window;
+  w.eval(fs.readFileSync(path.join(root, 'revenue-math.js'), 'utf8'));
   w.indexedDB = new IDBFactory();
   let staff = true;
   w.SalonAccess = { requireStaff() { if (!staff) throw new Error('Staff sign-in required.'); return { username: 'Erica', role: 'staff' }; } };
@@ -159,6 +160,7 @@ test('Reports counts approved multi-service visits and revenue, excludes pending
   const page = new JSDOM(code('reports.html'), { runScripts: 'outside-only', url: 'https://salon.test/reports.html' });
   const w = page.window;
   t.after(() => w.close());
+  w.eval(code('revenue-math.js'));
   w.indexedDB = p.w.indexedDB;
   w.localStorage.setItem('loggedUser', JSON.stringify({ username: 'Admin', role: 'admin' }));
   w.HTMLCanvasElement.prototype.getContext = () => ({});
@@ -176,6 +178,7 @@ test('Reports counts approved multi-service visits and revenue, excludes pending
 test('styled cancellation keeps a visit until confirmed and only shows success after saving', async t => {
   const dom = new JSDOM(code('notepad.html'), { runScripts: 'outside-only', url: 'https://salon.test/notepad.html' });
   const w = dom.window;
+  w.eval(fs.readFileSync(path.join(root, 'revenue-math.js'), 'utf8'));
   t.after(() => w.close());
   w.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   w.HTMLDialogElement.prototype.close = function () { this.open = false; this.dispatchEvent(new w.Event('close')); };

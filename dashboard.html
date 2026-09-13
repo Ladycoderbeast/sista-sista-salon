@@ -13,6 +13,7 @@
   <link rel="icon" href="assets/icons/icon-192.png" type="image/png">
   <style id="salon-access-shield">html{visibility:hidden!important}</style>
   <script src="auth.js"></script>
+  <script src="revenue-math.js"></script>
   <title>Dashboard</title>
   <style>
     .dashboard-cards {
@@ -277,8 +278,10 @@
           </div>
         </div>
 
+        <p id="dashboardRevenueNotice" role="status" style="margin:12px 0;"></p>
         <div class="chart-container">
-          <h3>Weekly Visit Trend</h3>
+          <h3>This Week’s Visits</h3>
+          <p id="weeklyVisitRange"></p>
           <canvas id="visitTrendChart" height="100"></canvas>
         </div>
 
@@ -416,8 +419,8 @@
             const el = document.createElement("div");
             el.className = "date";
             el.textContent = d;
-            const full = new Date(date.getFullYear(), date.getMonth(), d).toISOString().split("T")[0];
-            const localToday = new Date().toLocaleDateString("en-CA");
+            const full = SalonRevenue.dateKey(new Date(date.getFullYear(), date.getMonth(), d));
+            const localToday = SalonRevenue.dateKey();
             if (full === localToday) el.classList.add("today");
 
             const visits = allVisits.filter(v => v.date === full);
@@ -592,7 +595,7 @@ container.style.justifyContent = isDesktop ? "flex-start" : "center";
 
       request.onsuccess = function () {
         const reservations = request.result || [];
-        const today = new Date().toISOString().split("T")[0];
+        const today = SalonRevenue.dateKey();
 
         allReservations = reservations
           .filter(r => r.date >= today)
@@ -651,7 +654,7 @@ container.style.justifyContent = isDesktop ? "flex-start" : "center";
         const rtx = db.transaction("reservations", "readonly");
         const rstore = rtx.objectStore("reservations");
         rstore.getAll().onsuccess = (ev) => {
-          const today = new Date().toISOString().split("T")[0];
+          const today = SalonRevenue.dateKey();
           window.allReservations = (ev.target.result || [])
             .filter(r => r.date >= today)
             .sort((a,b) => a.date.localeCompare(b.date));
